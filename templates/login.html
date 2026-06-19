@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Movix Login</title>
+
+  <link rel="stylesheet" href="../static/login.css">
+
+  <!-- Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+</head>
+
+<body>
+
+  <div class="container">
+
+    <!-- LEFT SECTION -->
+    <div class="left-section">
+
+      <img src="../static/images/logo.png" class="logo-img">
+
+      <div class="welcome">
+        <h2>Hello, Friend !</h2>
+        <p>Login to continue your journey with Movix</p>
+      </div>
+
+    </div>
+
+    <!-- RIGHT SECTION -->
+    <div class="right-section">
+
+      <div class="form-box">
+
+        <h1>Login Account</h1>
+
+        <!-- ✅ FIX: Added FORM for POST request -->
+        <form action="/login" method="POST">
+
+          <input type="email" name="email" placeholder="Email Address" required>
+
+          <div class="password">
+            <input type="password" name="password" placeholder="Password" id="password" required>
+            <i class="fa-solid fa-eye toggle-password"></i>
+          </div>
+
+          <button type="submit" class="login-btn">LOGIN</button>
+
+        </form>
+        </form>
+
+        <p class="bottom-text">
+          Don't have an account?
+          <a href="/signup">Sign Up</a>
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    document.querySelectorAll(".toggle-password").forEach(icon => {
+      icon.addEventListener("click", function () {
+        const input = this.previousElementSibling;
+
+        if (input.type === "password") {
+          input.type = "text";
+          this.classList.remove("fa-eye");
+          this.classList.add("fa-eye-slash");
+        } else {
+          input.type = "password";
+          this.classList.remove("fa-eye-slash");
+          this.classList.add("fa-eye");
+        }
+      });
+    });
+  </script>
+
+</body>
+
+</html>

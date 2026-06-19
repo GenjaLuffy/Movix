@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Users — Movix Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #8b3dff;
+      --bg-dark: #0a0a0a;
+      --bg-card: #161616;
+      --bg-hover: #222222;
+      --text-primary: #ffffff;
+      --text-secondary: #a3a3a3;
+      --border: #262626;
+      --radius: 12px;
+      --radius-lg: 18px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 28px 24px 40px;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 24px;
+      margin-bottom: 24px;
+      background: rgba(10, 10, 10, .96);
+      border: 1px solid rgba(255, 255, 255, .06);
+      border-radius: var(--radius-lg);
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .logo span {
+      color: var(--primary);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 3vw, 3.4rem);
+      line-height: 1.05;
+    }
+
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: 0 18px 35px rgba(0, 0, 0, .12);
+      position: relative;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 1.35rem;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+
+    th,
+    td {
+      padding: 16px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
+      text-align: left;
+    }
+
+    th {
+      color: var(--text-secondary);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    td {
+      font-size: 14px;
+    }
+
+    tr:hover {
+      background: rgba(255, 255, 255, .03);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      transition: .2s ease;
+      font-weight: 600;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, .04);
+      color: var(--text-primary);
+      border: 1px solid rgba(255, 255, 255, .08);
+    }
+
+    .btn-danger {
+      background: #f87171;
+      color: white;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .05);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: default;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal {
+      width: min(540px, 100%);
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 24px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
+      padding: 28px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 1.35rem;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.4rem;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      display: grid;
+      gap: 16px;
+    }
+
+    .modal-body label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .modal-body input,
+    .modal-body select {
+      width: 100%;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    .modal-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .status-select {
+      display: inline-flex;
+      width: 100%;
+      color: var(--text-primary);
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, .04);
+      transition: all .2s ease;
+      cursor: pointer;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .02);
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      -webkit-text-fill-color: var(--text-primary);
+    }
+
+    .status-select:hover {
+      background: rgba(255, 255, 255, .08);
+    }
+
+    .status-select:focus,
+    .status-select:active {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(139, 61, 255, .22);
+      color: var(--text-primary);
+      -webkit-text-fill-color: var(--text-primary);
+    }
+
+    .status-select option {
+      background: var(--bg-card) !important;
+      color: var(--text-primary) !important;
+    }
+
+    .modal-body select.status-select {
+      color: var(--text-primary);
+    }
+
+    .status-active {
+      background: rgba(52, 211, 153, 0.14);
+      border-color: #34d399;
+      color: #34d399;
+    }
+
+    .status-pending {
+      background: rgba(251, 191, 36, 0.14);
+      border-color: #fbbf24;
+      color: #fbbf24;
+    }
+
+    .status-blocked {
+      background: rgba(248, 113, 113, 0.14);
+      border-color: #f87171;
+      color: #f87171;
+    }
+
+    .badge.active {
+      color: #34d399;
+    }
+
+    .badge.pending {
+      color: #fbbf24;
+    }
+
+    .badge.blocked {
+      color: #f87171;
+    }
+
+    @media (max-width: 860px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .table-wrap {
+        overflow-x: scroll;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <a class="logo" href="/admin"><span>Mo</span>Vix Admin</a>
+      <nav class="nav-links">
+        <a href="/admin">Dashboard</a>
+        <a href="/manage_users">Users</a>
+        <a href="/manage_reviews">Watchlist</a>
+        <a href="/manage_reviews">Reviews</a>
+      </nav>
+    </header>
+
+    <div class="hero">
+      <div>
+        <h1>Manage Users</h1>
+        <p>Review accounts, update roles, and keep the platform secure by managing user access from here.</p>
+      </div>
+      <a class="btn btn-primary" href="{{ url_for('admin_dashboard') }}">Back to Dashboard</a>
+    </div>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>User Directory</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer style="margin-top: 28px; color: var(--text-secondary); font-size: 13px;">© 2026 Movix Admin</footer>
+  </div>
+
+  <script>
+    let users = [];
+
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/admin/users');
+        users = await res.json();
+        renderUsers();
+      } catch (err) {
+        console.error('Failed to load users', err);
+        document.getElementById('usersTable').innerHTML =
+          '<tr><td colspan="5">Could not load users.</td></tr>';
+      }
+    }
+
+    async function updateStatus(index, status) {
+      const user = users[index];
+      try {
+        await fetch(`/api/admin/users/${user.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        user.status = status;
+        renderUsers();
+      } catch (err) {
+        console.error('Failed to update status', err);
+        alert('Could not update user status.');
+      }
+    }
+
+    async function deleteUser(index) {
+      const user = users[index];
+      if (!confirm(`Delete ${user.first_name} ${user.last_name}? This cannot be undone.`)) return;
+      try {
+        await fetch(`/api/admin/users/${user.id}`, { method: 'DELETE' });
+        users.splice(index, 1);
+        renderUsers();
+      } catch (err) {
+        console.error('Failed to delete user', err);
+        alert('Could not delete user.');
+      }
+    }
+
+    function renderUsers() {
+      const tbody = document.getElementById('usersTable');
+      tbody.innerHTML = '';
+      users.forEach((user, index) => {
+        const fullName = `${user.first_name} ${user.last_name}`;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${fullName}</td>
+          <td>${user.email}</td>
+          <td>${user.role}</td>
+          <td>
+            <select class="status-select status-${user.status.toLowerCase()}" onchange="updateStatus(${index}, this.value)">
+              <option value="Active" ${user.status === 'Active' ? 'selected' : ''}>Active</option>
+              <option value="Pending" ${user.status === 'Pending' ? 'selected' : ''}>Pending</option>
+              <option value="Blocked" ${user.status === 'Blocked' ? 'selected' : ''}>Blocked</option>
+            </select>
+          </td>
+          <td>
+            <button class="btn btn-secondary" type="button" onclick="openEditModal(${index})">Edit</button>
+            <button class="btn btn-danger" type="button" onclick="deleteUser(${index})">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    let editingUserIndex = null;
+
+    function openEditModal(index) {
+      editingUserIndex = index;
+      const user = users[index];
+      document.getElementById('editName').value = `${user.first_name} ${user.last_name}`;
+      document.getElementById('editEmail').value = user.email;
+      document.getElementById('editRole').value = user.role;
+      document.getElementById('editStatus').value = user.status;
+      document.getElementById('modalBackdrop').classList.add('active');
+    }
+
+    function closeEditModal() {
+      editingUserIndex = null;
+      document.getElementById('modalBackdrop').classList.remove('active');
+    }
+
+    async function saveUserEdit() {
+      if (editingUserIndex === null) return;
+      const user = users[editingUserIndex];
+      const name = document.getElementById('editName').value;
+      const email = document.getElementById('editEmail').value;
+      const role = document.getElementById('editRole').value;
+      const status = document.getElementById('editStatus').value;
+
+      try {
+        await fetch(`/api/admin/users/${user.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, role, status })
+        });
+        const parts = name.trim().split(' ');
+        user.first_name = parts[0];
+        user.last_name = parts.slice(1).join(' ') || user.last_name;
+        user.email = email;
+        user.role = role;
+        user.status = status;
+        renderUsers();
+        closeEditModal();
+      } catch (err) {
+        console.error('Failed to save user', err);
+        alert('Could not save changes.');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadUsers);
+  </script>
+
+  <div id="modalBackdrop" class="modal-backdrop" onclick="if (event.target === this) closeEditModal();">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+      <div class="modal-header">
+        <h3 id="editModalTitle">Edit User</h3>
+        <button class="modal-close" type="button" onclick="closeEditModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <label for="editName">Name</label>
+        <input id="editName" type="text" />
+        <label for="editEmail">Email</label>
+        <input id="editEmail" type="email" />
+        <label for="editRole">Role</label>
+        <input id="editRole" type="text" />
+        <label for="editStatus">Status</label>
+        <select id="editStatus" class="status-select">
+          <option value="Active">Active</option>
+          <option value="Pending">Pending</option>
+          <option value="Blocked">Blocked</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" type="button" onclick="closeEditModal()">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="saveUserEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

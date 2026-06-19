@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Reviews — Movix Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #8b3dff;
+      --bg-dark: #0a0a0a;
+      --bg-card: #161616;
+      --bg-hover: #222222;
+      --text-primary: #ffffff;
+      --text-secondary: #a3a3a3;
+      --border: #262626;
+      --radius: 12px;
+      --radius-lg: 18px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 28px 24px 40px;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 24px;
+      margin-bottom: 24px;
+      background: rgba(10, 10, 10, .96);
+      border: 1px solid rgba(255, 255, 255, .06);
+      border-radius: var(--radius-lg);
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .logo span {
+      color: var(--primary);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 3vw, 3.4rem);
+      line-height: 1.05;
+    }
+
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: 0 18px 35px rgba(0, 0, 0, .12);
+      position: relative;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 1.35rem;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+
+    th,
+    td {
+      padding: 16px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
+      text-align: left;
+    }
+
+    th {
+      color: var(--text-secondary);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    td {
+      font-size: 14px;
+    }
+
+    tr:hover {
+      background: rgba(255, 255, 255, .03);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      transition: .2s ease;
+      font-weight: 600;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, .04);
+      color: var(--text-primary);
+      border: 1px solid rgba(255, 255, 255, .08);
+    }
+
+    .btn-danger {
+      background: #f87171;
+      color: white;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .05);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .status-select {
+      display: inline-flex;
+      width: 100%;
+      color: var(--text-primary);
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, .04);
+      transition: all .2s ease;
+      cursor: pointer;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .02);
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      -webkit-text-fill-color: var(--text-primary);
+    }
+
+    .status-select:hover {
+      background: rgba(255, 255, 255, .08);
+    }
+
+    .status-select:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(139, 61, 255, .22);
+      color: var(--text-primary);
+      -webkit-text-fill-color: var(--text-primary);
+    }
+
+    .status-select option {
+      background: var(--bg-card) !important;
+      color: var(--text-primary) !important;
+    }
+
+    .status-approved {
+      background: rgba(52, 211, 153, 0.14);
+      border-color: #34d399;
+      color: #34d399;
+    }
+
+    .status-pending {
+      background: rgba(251, 191, 36, 0.14);
+      border-color: #fbbf24;
+      color: #fbbf24;
+    }
+
+    .status-rejected {
+      background: rgba(248, 113, 113, 0.14);
+      border-color: #f87171;
+      color: #f87171;
+    }
+
+    .badge.approved {
+      color: #34d399;
+    }
+
+    .badge.pending {
+      color: #fbbf24;
+    }
+
+    .badge.rejected {
+      color: #f87171;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal {
+      width: min(560px, 100%);
+      background: var(--bg-card);
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 24px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
+      padding: 28px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 1.35rem;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.4rem;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      display: grid;
+      gap: 16px;
+    }
+
+    .modal-body label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .modal-body input,
+    .modal-body textarea,
+    .modal-body select {
+      width: 100%;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    .modal-body textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .modal-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .moderation-list {
+      display: grid;
+      gap: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .moderation-item {
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .moderation-item-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .moderation-item-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .moderation-item-actions button {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    @media (max-width: 860px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .table-wrap {
+        overflow-x: scroll;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header class="nav">
+      <a class="logo" href="/admin"><span>Mo</span>Vix Admin</a>
+      <nav class="nav-links">
+        <a href="/admin">Dashboard</a>
+        <a href="/manage_users">Users</a>
+        <a href="/manage_reviews">Watchlist</a>
+        <a href="/manage_reviews">Reviews</a>
+      </nav>
+    </header>
+
+    <div class="hero">
+      <div>
+        <h1>Manage Reviews</h1>
+        <p>Moderate user feedback, approve high-quality reviews, and remove any content that doesn't fit platform
+          guidelines.</p>
+      </div>
+      <a class="btn btn-primary" href="/admin">Back to Dashboard</a>
+    </div>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Latest Reviews</h2>
+        <button class="btn btn-secondary" type="button" onclick="openModerationModal()">Moderation Queue</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Movie</th>
+              <th>Rating</th>
+              <th>Review</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="reviewsTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer style="margin-top: 28px; color: var(--text-secondary); font-size: 13px;">© 2026 Movix Admin</footer>
+  </div>
+
+  <script>
+    const reviews = [
+      { user: 'Jordan Steele', movie: 'Inception', rating: 9, summary: 'Mind-bending and polished.', status: 'Approved' },
+      { user: 'Tina Patel', movie: 'Parasite', rating: 8, summary: 'Intense, smart and well-paced.', status: 'Approved' },
+      { user: 'Ethan Brooks', movie: 'Dune', rating: 8, summary: 'Visually stunning but slow.', status: 'Pending' },
+      { user: 'Mia Lawson', movie: 'The Dark Knight', rating: 10, summary: 'Perfect superhero cinema.', status: 'Approved' }
+    ];
+
+    function renderReviews() {
+      const tbody = document.getElementById('reviewsTable');
+      tbody.innerHTML = '';
+      reviews.forEach((review, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${review.user}</td>
+          <td>${review.movie}</td>
+          <td>${review.rating}</td>
+          <td>${review.summary}</td>
+          <td>
+            <select class="status-select status-${review.status.toLowerCase()}" onchange="updateReviewStatus(${index}, this.value)">
+              <option value="Approved" ${review.status === 'Approved' ? 'selected' : ''}>Approved</option>
+              <option value="Pending" ${review.status === 'Pending' ? 'selected' : ''}>Pending</option>
+              <option value="Rejected" ${review.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+            </select>
+          </td>
+          <td>
+            <button class="btn btn-secondary" type="button" onclick="openEditModal(${index})">Edit</button>
+            <button class="btn btn-danger" type="button" onclick="deleteReview(${index})">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateReviewStatus(index, status) {
+      reviews[index].status = status;
+      renderReviews();
+    }
+
+    function deleteReview(index) {
+      reviews.splice(index, 1);
+      renderReviews();
+    }
+
+    function openModerationModal() {
+      const pendingReviews = reviews.filter(r => r.status === 'Pending');
+      const container = document.getElementById('moderationListContainer');
+      container.innerHTML = '';
+      if (pendingReviews.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">No pending reviews</p>';
+      } else {
+        pendingReviews.forEach((review, idx) => {
+          const realIndex = reviews.indexOf(review);
+          const item = document.createElement('div');
+          item.className = 'moderation-item';
+          item.innerHTML = `
+            <div class="moderation-item-text">
+              <strong>${review.user}</strong> on <strong>${review.movie}</strong> (${review.rating}/10)
+              <br />${review.summary}
+            </div>
+            <div class="moderation-item-actions">
+              <button class="btn btn-secondary" style="flex: 1;" type="button" onclick="approveReview(${realIndex})">Approve</button>
+              <button class="btn btn-danger" type="button" onclick="rejectReview(${realIndex})">Reject</button>
+            </div>
+          `;
+          container.appendChild(item);
+        });
+      }
+      document.getElementById('moderationModalBackdrop').classList.add('active');
+    }
+
+    function closeModerationModal() {
+      document.getElementById('moderationModalBackdrop').classList.remove('active');
+    }
+
+    function approveReview(index) {
+      reviews[index].status = 'Approved';
+      renderReviews();
+      openModerationModal();
+    }
+
+    function rejectReview(index) {
+      reviews[index].status = 'Rejected';
+      renderReviews();
+      openModerationModal();
+    }
+
+    let editingReviewIndex = null;
+
+    function openEditModal(index) {
+      editingReviewIndex = index;
+      const review = reviews[index];
+      document.getElementById('editReviewUser').value = review.user;
+      document.getElementById('editReviewMovie').value = review.movie;
+      document.getElementById('editReviewRating').value = review.rating;
+      document.getElementById('editReviewSummary').value = review.summary;
+      document.getElementById('editReviewModalBackdrop').classList.add('active');
+    }
+
+    function closeEditModal() {
+      editingReviewIndex = null;
+      document.getElementById('editReviewModalBackdrop').classList.remove('active');
+    }
+
+    function saveReviewEdit() {
+      const user = document.getElementById('editReviewUser').value.trim();
+      const movie = document.getElementById('editReviewMovie').value.trim();
+      const rating = Number(document.getElementById('editReviewRating').value);
+      const summary = document.getElementById('editReviewSummary').value.trim();
+      if (!user || !movie || !rating || !summary) return;
+      reviews[editingReviewIndex] = { user, movie, rating, summary, status: reviews[editingReviewIndex].status };
+      renderReviews();
+      closeEditModal();
+    }
+
+    document.addEventListener('DOMContentLoaded', renderReviews);
+  </script>
+
+  <div id="moderationModalBackdrop" class="modal-backdrop" onclick="if (event.target === this) closeModerationModal();">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="moderationModalTitle">
+      <div class="modal-header">
+        <h3 id="moderationModalTitle">Moderation Queue</h3>
+        <button class="modal-close" type="button" onclick="closeModerationModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="moderationListContainer" class="moderation-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="editReviewModalBackdrop" class="modal-backdrop" onclick="if (event.target === this) closeEditModal();">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editReviewModalTitle">
+      <div class="modal-header">
+        <h3 id="editReviewModalTitle">Edit Review</h3>
+        <button class="modal-close" type="button" onclick="closeEditModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <label for="editReviewUser">User</label>
+        <input id="editReviewUser" type="text" />
+        <label for="editReviewMovie">Movie</label>
+        <input id="editReviewMovie" type="text" />
+        <label for="editReviewRating">Rating</label>
+        <input id="editReviewRating" type="number" step="0.5" min="0" max="10" />
+        <label for="editReviewSummary">Review</label>
+        <textarea id="editReviewSummary"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" type="button" onclick="closeEditModal()">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="saveReviewEdit()">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

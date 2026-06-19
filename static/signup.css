@@ -1,0 +1,228 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #e0e0ff, #f7f7ff);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* MAIN CONTAINER (CARD STYLE) */
+.container {
+    display: flex;
+    width: 90%;
+    max-width: 1100px;
+    min-height: 500px;
+
+    border-radius: 20px;
+    overflow: hidden;
+
+    /* CARD LOOK */
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    background: #fff;
+
+    /* optional smooth animation */
+    transition: 0.3s ease;
+}
+
+/* HOVER EFFECT (optional) */
+.container:hover {
+    transform: scale(1.01);
+}
+
+/* LEFT SECTION */
+.left-section {
+    width: 50%;
+    position: relative;
+
+    /* BACKGROUND IMAGE */
+    background: linear-gradient(rgba(33, 33, 33, 0.4), rgba(46, 46, 46, 0.4)),
+        url("../static/images/lo.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* LOGO */
+.logo-img {
+    position: absolute;
+    top: 40px;
+    left: 40px;
+    width: 120px;
+    height: auto;
+    cursor: pointer;
+}
+
+/* WELCOME */
+.welcome {
+    position: absolute;
+    top: 45%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: white;
+}
+
+.welcome h2 {
+    max-width: 300px;
+    margin: 0 auto 20px;
+    font-size: 32px;
+}
+
+.welcome p {
+    font-size: 16px;
+    margin-bottom: 30px;
+    color: #adaaaa;
+}
+
+/* BUTTON */
+.welcome button {
+    padding: 14px 45px;
+    border: none;
+    border-radius: 8px;
+    background: #0d4c80;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* HOVER EFFECT */
+.welcome button:hover {
+    background: #0a355a;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* RIGHT SECTION */
+.right-section {
+    width: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px;
+    background: white;
+}
+
+/* FORM BOX */
+.form-box {
+    width: 100%;
+    max-width: 600px;
+}
+
+.form-box h1 {
+    text-align: center;
+    font-size: 25px;
+    margin-bottom: 30px;
+}
+
+/* ROW */
+.row {
+    display: flex;
+    gap: 20px;
+}
+
+/* INPUTS */
+input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    font-size: 18px;
+    outline: none;
+}
+
+/* PASSWORD */
+.password {
+    position: relative;
+}
+
+.password i {
+    position: absolute;
+    right: 20px;
+    top: 40%;
+    transform: translateY(-50%);
+    cursor: pointer;
+}
+
+.password-box {
+    position: relative;
+    width: 100%;
+}
+
+.password-box input {
+    width: 100%;
+    padding-right: 40px;
+}
+
+.password-box i {
+    position: absolute;
+    right: 12px;
+    top: 36%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #666;
+}
+
+/* BUTTON */
+.signup-btn{
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 15px;
+    background: linear-gradient(to right,#8b3dff,#c055ff);
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.signup-btn:hover{
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(139, 61, 255, 0.4);
+}
+
+/* TEXT */
+.bottom-text{
+    text-align: center;
+    margin-top: 15px;
+    color: #666;
+}
+
+.bottom-text a{
+    color: #8b3dff;
+    text-decoration: none;
+}
+.password i{
+    cursor: pointer;
+}
+/* RESPONSIVE */
+@media(max-width: 768px) {
+
+    .container {
+        flex-direction: column;
+    }
+
+    .left-section,
+    .right-section {
+        width: 100%;
+    }
+
+    .left-section {
+        height: 300px;
+    }
+
+    .row {
+        flex-direction: column;
+    }
+
+    .form-box h1 {
+        font-size: 32px;
+    }
+}

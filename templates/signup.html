@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Signup Page</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="../static/signup.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- LEFT -->
+    <div class="left-section">
+        <img src="../static/images/logo.png" class="logo-img">
+
+        <div class="welcome">
+            <h2>Welcome to Movix</h2>
+            <p>Create your account and enjoy movies</p>
+        </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right-section">
+
+        <!-- ✅ FIXED FORM -->
+        <form class="form-box" action="/signup" method="POST">
+
+            <h1>Create Account</h1>
+
+            <div class="row">
+                <input type="text" name="first_name" placeholder="First Name" required>
+                <input type="text" name="last_name" placeholder="Last Name" required>
+            </div>
+
+            <input type="email" name="email" placeholder="Email Address" required>
+            <input type="text" name="address" placeholder="Address" required>
+
+            <div class="password-box">
+                <input type="password" name="password" id="password" placeholder="Password" required>
+                <i class="fa fa-eye" id="togglePassword"></i>
+            </div>
+
+            <div class="password-box">
+                <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
+                <i class="fa fa-eye" id="toggleConfirm"></i>
+            </div>
+
+            <button type="submit" class="signup-btn">SIGN UP</button>
+
+            <p class="bottom-text">
+                Already have an account? <a href="/login">Login</a>
+            </p>
+
+        </form>
+
+    </div>
+
+</div>
+
+<!-- PASSWORD TOGGLE JS -->
+<script>
+const togglePassword = document.getElementById("togglePassword");
+const password = document.getElementById("password");
+
+togglePassword.addEventListener("click", function () {
+    const type = password.type === "password" ? "text" : "password";
+    password.type = type;
+
+    this.classList.toggle("fa-eye");
+    this.classList.toggle("fa-eye-slash");
+});
+
+const toggleConfirm = document.getElementById("toggleConfirm");
+const confirmPassword = document.getElementById("confirmPassword");
+
+toggleConfirm.addEventListener("click", function () {
+    const type = confirmPassword.type === "password" ? "text" : "password";
+    confirmPassword.type = type;
+
+    this.classList.toggle("fa-eye");
+    this.classList.toggle("fa-eye-slash");
+});
+</script>
+
+</body>
+</html>
