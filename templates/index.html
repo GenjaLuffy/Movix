@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/static/index.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
     rel="stylesheet" />
-  
+
 </head>
 
 <body>
@@ -418,10 +418,19 @@
     // ==========================================
     // MOVIE CARD
     // ==========================================
+
+    function openMovie(id) {
+      fetch(`/api/movies/${id}`)
+        .then(res => res.json())
+        .then(movie => {
+          openModalWithAPI(movie);
+        });
+    }
+
     function createMovieCard(movie, size = 'medium') {
       const card = document.createElement('div');
       card.className = `movie-card ${size}`;
-      card.onclick = () => openModal(movie.id);
+      card.onclick = () => openMovie(movie.id);
 
       const inWl = watchlist.includes(movie.id);
       const inFav = favorites.includes(movie.id);
@@ -508,11 +517,18 @@
     }
 
     function filterGenre(genre, el) {
-      document.querySelectorAll('.genre-chip').forEach(c => c.classList.remove('active'));
-      el.classList.add('active');
-      const filtered = genre === 'All' ? movies : movies.filter(m => m.genre === genre);
-      renderMovies('genreGrid', filtered, 'medium');
-    }
+  document.querySelectorAll('.genre-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+
+  const filtered =
+    genre === 'All'
+      ? movies
+      : movies.filter(m =>
+          (m.genre || "").split("|").map(g => g.trim()).includes(genre)
+        );
+
+  renderMovies('genreGrid', filtered, 'medium');
+}
 
     function renderWatchlist() {
       const wlMovies = movies.filter(m => watchlist.includes(m.id));
@@ -630,30 +646,42 @@
     // ==========================================
     // MODAL
     // ==========================================
-    function openModal(id) {
-      const movie = getMovie(id);
-      if (!movie) return;
-      currentMovieId = id;
+    function openModalWithAPI(movie) {
+      currentMovieId = movie.id;
 
-      document.getElementById('modalPoster').style.backgroundImage = `url('${movie.poster}')`;
-      document.getElementById('modalTitle').textContent = movie.title;
-      document.getElementById('modalRating').textContent = movie.rating;
-      document.getElementById('modalYear').textContent = movie.year;
-      document.getElementById('modalLang').textContent = movie.language;
-      document.getElementById('modalGenre').textContent = movie.genre;
-      document.getElementById('modalDesc').textContent = movie.description;
-      document.getElementById('modalTags').innerHTML = `
-        <span class="modal-tag">${movie.genre}</span>
-        <span class="modal-tag">${movie.year}</span>
-        <span class="modal-tag">${movie.language}</span>
-      `;
+      console.log("MOVIE DATA:", movie);
 
-      const similar = movies.filter(m => m.id !== id && (m.genre === movie.genre || m.mood === movie.mood)).slice(0, 6);
-      renderMovies('modalSimilar', similar, 'small');
-      updateModalButtons();
+      // ✅ SAFE TITLE (handles all sources)
+      const title =
+        movie.title ||
+        movie.original_title ||
+        movie.name ||
+        "Untitled";
 
-      document.getElementById('movieModal').classList.add('active');
-      document.body.style.overflow = 'hidden';
+      // ✅ SAFE DESCRIPTION (handles all sources)
+      const desc =
+        movie.description ||
+        movie.overview ||
+        movie.plot ||
+        "No description available";
+
+      // -----------------------------
+      // UPDATE ONLY TITLE + DESCRIPTION (YOUR REQUEST)
+      // -----------------------------
+
+      const titleEl = document.getElementById("modalTitle");
+      const descEl = document.getElementById("modalDesc");
+
+      if (titleEl) titleEl.textContent = title;
+      if (descEl) descEl.textContent = desc;
+
+      // -----------------------------
+      // SHOW MODAL
+      // -----------------------------
+      const modal = document.getElementById("movieModal");
+      if (modal) modal.classList.add("active");
+
+      document.body.style.overflow = "hidden";
     }
 
     function closeModal(e) {
@@ -670,25 +698,57 @@
     // RECOMMENDATION ENGINE
     // ==========================================
     function getRecommendations() {
-      const genre = document.getElementById('recGenre').value;
-      const mood = document.getElementById('recMood').value;
-      const language = document.getElementById('recLanguage').value;
-      const year = document.getElementById('recYear').value;
+      const payload = {
+        genre: document.getElementById("recGenre")?.value || "",
+        mood: document.getElementById("recMood")?.value || "",
+        language: document.getElementById("recLanguage")?.value || "",
+        year: document.getElementById("recYear")?.value || ""
+      };
 
-      let results = [...movies];
-      if (genre) results = results.filter(m => m.genre === genre);
-      if (mood) results = results.filter(m => m.mood === mood);
-      if (language) results = results.filter(m => m.language === language);
-      if (year) results = results.filter(m => m.year === parseInt(year));
+      const grid = document.getElementById("recGrid");
+      const section = document.getElementById("recResults");
+      const count = document.getElementById("recCount");
 
-      results.sort((a, b) => b.rating - a.rating);
+      if (!grid || !section) return;
 
-      document.getElementById('recCount').textContent = `(${results.length} found)`;
-      document.getElementById('recResults').style.display = 'block';
-      renderMovies('recGrid', results.slice(0, 8), 'medium');
-      showToast(`Found ${results.length} movies for you!`);
+      grid.innerHTML = "<p>Loading recommendations...</p>";
+      section.style.display = "block";
+
+      fetch("/api/recommendations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+        .then(res => res.json())
+        .then(data => {
+
+          const recommendedMovies =
+          Array.isArray(data) ? data : (data.recommendations || []);
+
+          grid.innerHTML = "";
+
+          if (recommendedMovies.length === 0) {
+            grid.innerHTML = "<p>No recommendations found.</p>";
+            count.innerText = "(0)";
+            return;
+          }
+
+          grid.innerHTML = recommendedMovies.map(movie => `
+        <div class="movie-card" onclick="openRecommendedMovie(${movie.id})">
+          <img src="${movie.poster || '/static/images/no-poster.png'}"
+               onerror="this.src='/static/images/no-poster.png'">
+          <h4>${movie.title || "Untitled"}</h4>
+          <p>${movie.genre || ""} ${movie.year ? "• " + movie.year : ""}</p>
+        </div>
+      `).join("");
+
+          count.innerText = `(${recommendedMovies.length})`;
+        })
+        .catch(err => {
+          console.error("Recommendation error:", err);
+          grid.innerHTML = "<p style='color:red;'>Failed to load recommendations.</p>";
+        });
     }
-
     // ==========================================
     // CAROUSEL (FIXED)
     // ==========================================
@@ -759,15 +819,43 @@
     // ==========================================
     // FORM OPTIONS
     // ==========================================
-    function populateSelects() {
-      const genres = [...new Set(movies.map(m => m.genre))].sort();
-      const languages = [...new Set(movies.map(m => m.language))].sort();
-      const years = [...new Set(movies.map(m => m.year))].sort((a, b) => b - a);
+   function populateSelects() {
+  // ✅ FIX: split multi-genres properly
+  const genres = [
+    ...new Set(
+      movies.flatMap(m => (m.genre || "").split("|"))
+    )
+  ].map(g => g.trim()).filter(Boolean).sort();
 
-      genres.forEach(g => document.getElementById('recGenre').innerHTML += `<option value="${g}">${g}</option>`);
-      languages.forEach(l => document.getElementById('recLanguage').innerHTML += `<option value="${l}">${l}</option>`);
-      years.forEach(y => document.getElementById('recYear').innerHTML += `<option value="${y}">${y}</option>`);
-    }
+  const languages = [
+    ...new Set(movies.map(m => m.language || "Unknown"))
+  ].filter(Boolean).sort();
+
+  const years = [
+    ...new Set(movies.map(m => m.year).filter(Boolean))
+  ].sort((a, b) => b - a);
+
+  const genreEl = document.getElementById('recGenre');
+  const langEl = document.getElementById('recLanguage');
+  const yearEl = document.getElementById('recYear');
+
+  // clear first (VERY IMPORTANT to avoid duplicates on reload)
+  genreEl.innerHTML = `<option value="">All Genres</option>`;
+  langEl.innerHTML = `<option value="">All Languages</option>`;
+  yearEl.innerHTML = `<option value="">Any Year</option>`;
+
+  genres.forEach(g =>
+    genreEl.innerHTML += `<option value="${g}">${g}</option>`
+  );
+
+  languages.forEach(l =>
+    langEl.innerHTML += `<option value="${l}">${l}</option>`
+  );
+
+  years.forEach(y =>
+    yearEl.innerHTML += `<option value="${y}">${y}</option>`
+  );
+}
 
     // ==========================================
     // INIT
@@ -792,6 +880,18 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeModalDirect();
     });
+
+    function openRecommendedMovie(id) {
+      fetch(`/api/movies/${id}`)
+        .then(res => res.json())
+        .then(movie => {
+          openModalWithAPI(movie); // reuse your existing modal
+        })
+        .catch(err => {
+          console.error("Failed to open movie:", err);
+        });
+    }
+
   </script>
 </body>
 

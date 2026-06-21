@@ -4,58 +4,70 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 
 class MovieRecommender:
-    def __init__(self, dataset_path):
+    def __init__(self, csv_path):
+        self.df = pd.read_csv(csv_path)
 
-        self.df = pd.read_csv(dataset_path)
+        # normalize columns safely
+        for col in ['genres', 'keywords', 'cast', 'director', 'title']:
+            if col in self.df.columns:
+                self.df[col] = self.df[col].fillna('').astype(str)
 
-        # clean data
-        self.df["genres"] = self.df["genres"].fillna("")
+        self.df['title_norm'] = self.df['title'].str.lower().str.strip()
 
-        # feature column
-        self.df["features"] = self.df["genres"]
+        # build content "soup"
+        self.df['soup'] = (
+            self.df.get('genres', '') + " " +
+            self.df.get('keywords', '') + " " +
+            self.df.get('cast', '') + " " +
+            self.df.get('director', '')
+        )
 
-        # vectorizer
-        self.vectorizer = TfidfVectorizer(stop_words="english")
-        self.matrix = self.vectorizer.fit_transform(self.df["features"])
+        self.vectorizer = TfidfVectorizer(stop_words='english')
+        self.matrix = self.vectorizer.fit_transform(self.df['soup'])
 
-    # ==========================================
-    # 🔥 MEMORY SAFE RECOMMENDER
-    # ==========================================
+        self.similarity = cosine_similarity(self.matrix)
+
+        self.df = self.df.reset_index(drop=True)
+
     def recommend_for_user(self, user_movies, top_n=10):
-
         if not user_movies:
-            return self.df.sample(top_n).to_dict(orient="records")
+            return self._fallback(top_n)
 
-        # get indices of user movies
-        indices = self.df[self.df["title"].isin(user_movies)].index
+        indices = []
 
-        if len(indices) == 0:
-            return self.df.sample(top_n).to_dict(orient="records")
+        for title in user_movies:
+            title = title.lower().strip()
+            match = self.df[self.df['title_norm'] == title]
 
-        # compute similarity ONLY WHEN NEEDED
-        scores = None
+            if not match.empty:
+                indices.append(match.index[0])
 
-        for idx in indices:
-            sim = cosine_similarity(self.matrix[idx], self.matrix).flatten()
+        if not indices:
+            return self._fallback(top_n)
 
-            if scores is None:
-                scores = sim
-            else:
-                scores += sim
+        scores = self.similarity[indices].mean(axis=0)
 
-        # rank movies
         ranked = scores.argsort()[::-1]
 
+        seen = set([m.lower().strip() for m in user_movies])
         results = []
-        seen = set(user_movies)
 
         for i in ranked:
-            title = self.df.iloc[i]["title"]
+            title = self.df.iloc[i]['title']
 
-            if title not in seen:
-                results.append(self.df.iloc[i])
+            if title.lower().strip() in seen:
+                continue
+
+            results.append(self.df.iloc[i].to_dict())
 
             if len(results) == top_n:
                 break
 
-        return pd.DataFrame(results).to_dict(orient="records")
+        return results
+
+    def _fallback(self, top_n):
+        return (
+            self.df.sort_values("popularity", ascending=False)
+            .head(top_n)
+            .to_dict(orient="records")
+        )

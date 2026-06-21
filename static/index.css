@@ -700,8 +700,9 @@
       overflow: hidden;
       display: grid;
       grid-template-columns: 320px 1fr;
-      transform: scale(0.95);
+      transform: scale(1);
       transition: transform 0.3s;
+      opacity: 1;
     }
 
     .modal-overlay.active .modal {
@@ -933,3 +934,13 @@
     img[src=""] {
       background: var(--bg-hover);
     }
+
+
+    .movie-card {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.movie-card:hover {
+  transform: scale(1.05);
+}
