@@ -8,6 +8,7 @@ from recommender import MovieRecommender
 app = Flask(__name__)
 app.secret_key = "movix-dev-secret-change-me"
 
+
 # ==============================
 # ML MODEL
 # ==============================
@@ -33,8 +34,10 @@ def admin_required(view):
     def wrapped(*args, **kwargs):
         if "user_id" not in session:
             return jsonify({"error": "Not authenticated"}), 401
+
         if not session.get("is_admin"):
             return jsonify({"error": "Admin required"}), 403
+
         return view(*args, **kwargs)
     return wrapped
 
@@ -53,6 +56,80 @@ def landing_page():
     return render_template("landingpage.html")
 
 
+@app.route("/signup", methods=["GET"])
+def signup_page():
+    return render_template("signup.html")
+
+
+@app.route("/signup", methods=["POST"])
+def signup():
+    first_name = request.form.get("first_name", "").strip()
+    last_name = request.form.get("last_name", "").strip()
+    email = request.form.get("email", "").strip().lower()
+    address = request.form.get("address", "").strip()
+    password = request.form.get("password", "")
+
+    if not all([first_name, last_name, email, password]):
+        return render_template("signup.html", error="Fill all required fields"), 400
+
+    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            INSERT INTO users (first_name, last_name, email, address, password)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (first_name, last_name, email, address, hashed))
+        conn.commit()
+    except Exception:
+        return render_template("signup.html", error="Email already exists"), 400
+    finally:
+        conn.close()
+
+    return redirect(url_for("login_page"))
+
+
+@app.route("/login", methods=["GET"])
+def login_page():
+    return render_template("login.html")
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    email = request.form.get("email", "").strip().lower()
+    password = request.form.get("password", "")
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
+    user = cursor.fetchone()
+    conn.close()
+
+    if not user or not bcrypt.checkpw(password.encode(), user["password"].encode()):
+        return render_template("login.html", error="Invalid credentials")
+
+    if user.get("status") == "Blocked":
+        return render_template("login.html", error="Account blocked")
+
+    session["user_id"] = user["id"]
+    session["first_name"] = user["first_name"]
+    session["is_admin"] = bool(user.get("is_admin"))
+
+    return redirect(url_for("admin_dashboard" if session["is_admin"] else "home_page"))
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("landing_page"))
+
+
+# ==============================
+# PAGES
+# ==============================
 @app.route("/home")
 @login_required
 def home_page():
@@ -72,73 +149,6 @@ def admin_dashboard():
 
 
 # ==============================
-# AUTH
-# ==============================
-@app.route("/signup", methods=["GET", "POST"])
-def signup():
-    if request.method == "GET":
-        return render_template("signup.html")
-
-    first_name = request.form.get("first_name", "").strip()
-    last_name = request.form.get("last_name", "").strip()
-    email = request.form.get("email", "").strip().lower()
-    address = request.form.get("address", "").strip()
-    password = request.form.get("password", "")
-
-    if not all([first_name, last_name, email, password]):
-        return render_template("signup.html", error="Fill all required fields"), 400
-
-    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    try:
-        cursor.execute("""
-            INSERT INTO users (first_name, last_name, email, address, password)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (first_name, last_name, email, address, hashed))
-        conn.commit()
-    except Exception:
-        return render_template("signup.html", error="Email already exists"), 400
-    finally:
-        conn.close()
-
-    return redirect(url_for("login_page"))
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login_page():
-    if request.method == "GET":
-        return render_template("login.html")
-
-    email = request.form.get("email", "").strip().lower()
-    password = request.form.get("password", "")
-
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
-    user = cursor.fetchone()
-    conn.close()
-
-    if not user or not bcrypt.checkpw(password.encode(), user["password"].encode()):
-        return render_template("login.html", error="Invalid credentials")
-
-    session["user_id"] = user["id"]
-    session["first_name"] = user["first_name"]
-    session["is_admin"] = bool(user.get("is_admin"))
-
-    return redirect(url_for("home_page"))
-
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("landing_page"))
-
-
-# ==============================
 # MOVIES API
 # ==============================
 @app.route("/api/movies")
@@ -152,22 +162,27 @@ def api_movies():
     conn.close()
     return jsonify(movies)
 
+
 @app.route("/api/movies/<int:movie_id>")
-def get_movie(movie_id):
-    try:
-        movie = recommender.get_movie_by_id(movie_id)
+def api_movie_detail(movie_id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
 
-        if movie is None:
-            return jsonify({"error": "Movie not found"}), 404
+    cursor.execute("SELECT * FROM movies WHERE id=%s", (movie_id,))
+    movie = cursor.fetchone()
 
-        return jsonify(movie)
+    conn.close()
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    if not movie:
+        return jsonify({"error": "Not found"}), 404
+
+    return jsonify(movie)
+
+
 # ==============================
-# 🔥 FIXED RECOMMENDATION SYSTEM
+# 🔥 ML RECOMMENDATIONS
 # ==============================
-@app.route("/api/recommendations", methods=["POST"])
+@app.route("/api/recommendations")
 @login_required
 def api_recommendations():
     user_id = current_user_id()
@@ -175,66 +190,38 @@ def api_recommendations():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
+    # watched
     cursor.execute("""
         SELECT m.title
         FROM movies m
         JOIN watched w ON w.movie_id = m.id
         WHERE w.user_id=%s
     """, (user_id,))
-    watched = cursor.fetchall()
+    watched = [r["title"] for r in cursor.fetchall()]
 
+    # favorites
     cursor.execute("""
         SELECT m.title
         FROM movies m
         JOIN favorites f ON f.movie_id = m.id
         WHERE f.user_id=%s
     """, (user_id,))
-    favorites = cursor.fetchall()
-
-    cursor.execute("""
-        SELECT m.title
-        FROM movies m
-        JOIN watchlist wl ON wl.movie_id = m.id
-        WHERE wl.user_id=%s
-    """, (user_id,))
-    watchlist = cursor.fetchall()
+    favorites = [r["title"] for r in cursor.fetchall()]
 
     conn.close()
 
-    user_movies = list(set(
-        [m["title"] for m in watched] +
-        [m["title"] for m in favorites] +
-        [m["title"] for m in watchlist]
-    ))
+    user_movies = list(set(watched + favorites))
 
-    # -----------------------
-    # CASE 1: NO HISTORY
-    # -----------------------
-    if not user_movies:
-        results = recommender.df.sort_values(
-            "popularity",
-            ascending=False
-        ).head(10).to_dict(orient="records")
+    try:
+        results = recommender.recommend_for_user(user_movies, top_n=12)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-        return jsonify(results)
+    return jsonify(results)
 
-    # -----------------------
-    # CASE 2: ML RECOMMENDATIONS
-    # -----------------------
-    results = recommender.recommend_for_user(
-    user_movies=user_movies,
-    top_n=12
-)
 
-    # -----------------------
-    # SAFETY FALLBACK
-    # -----------------------
-    if not results:
-        results = recommender.df.sample(10).to_dict(orient="records")
-
-    # return jsonify(results)
 # ==============================
-# ADD MOVIES (WATCHLIST / FAV / WATCHED)
+# WATCHLIST / FAVORITES / WATCHED
 # ==============================
 def _add(table):
     data = request.get_json(silent=True) or request.form
@@ -276,26 +263,36 @@ def add_watched():
 
 
 # ==============================
-# MOVIE PAGE
+# REVIEWS
 # ==============================
-@app.route("/movie/<int:movie_id>")
-def movie_detail(movie_id):
+@app.route("/api/reviews", methods=["POST"])
+@login_required
+def create_review():
+    data = request.get_json(silent=True) or request.form
+
+    movie_id = data.get("movie_id")
+    rating = data.get("rating")
+    text = data.get("text")
+
+    if not movie_id or not rating or not text:
+        return jsonify({"error": "Missing fields"}), 400
+
     conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM movies WHERE id=%s", (movie_id,))
-    movie = cursor.fetchone()
+    cursor.execute("""
+        INSERT INTO reviews (user_id, movie_id, rating, review_text, status)
+        VALUES (%s,%s,%s,%s,'Pending')
+    """, (current_user_id(), movie_id, rating, text))
 
+    conn.commit()
     conn.close()
 
-    if not movie:
-        return "Movie not found", 404
-
-    return render_template("movie_detail.html", movie=movie)
+    return jsonify({"success": True})
 
 
 # ==============================
-# RUN
+# RUN APP
 # ==============================
 if __name__ == "__main__":
     app.run(debug=True)
