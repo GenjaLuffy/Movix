@@ -697,58 +697,86 @@
     // ==========================================
     // RECOMMENDATION ENGINE
     // ==========================================
-    function getRecommendations() {
-      const payload = {
-        genre: document.getElementById("recGenre")?.value || "",
-        mood: document.getElementById("recMood")?.value || "",
-        language: document.getElementById("recLanguage")?.value || "",
-        year: document.getElementById("recYear")?.value || ""
-      };
+   function getRecommendations() {
 
-      const grid = document.getElementById("recGrid");
-      const section = document.getElementById("recResults");
-      const count = document.getElementById("recCount");
+    const payload = {
+        genre: document.getElementById("recGenre").value,
+        mood: document.getElementById("recMood").value,
+        language: document.getElementById("recLanguage").value,
+        year: document.getElementById("recYear").value
+    };
 
-      if (!grid || !section) return;
+    const grid = document.getElementById("recGrid");
+    const section = document.getElementById("recResults");
+    const count = document.getElementById("recCount");
 
-      grid.innerHTML = "<p>Loading recommendations...</p>";
-      section.style.display = "block";
+    section.style.display = "block";
+    grid.innerHTML = "<p>Loading recommendations...</p>";
 
-      fetch("/api/recommendations", {
+    fetch("/api/recommendations", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json"
+        },
         body: JSON.stringify(payload)
-      })
-        .then(res => res.json())
-        .then(data => {
+    })
+    .then(async response => {
 
-          const recommendedMovies =
-          Array.isArray(data) ? data : (data.recommendations || []);
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+        }
 
-          grid.innerHTML = "";
+        return response.json();
+    })
+    .then(data => {
 
-          if (recommendedMovies.length === 0) {
+        console.log(data);
+
+        const movies = data.recommendations || [];
+
+        if (movies.length === 0) {
             grid.innerHTML = "<p>No recommendations found.</p>";
             count.innerText = "(0)";
             return;
-          }
+        }
 
-          grid.innerHTML = recommendedMovies.map(movie => `
-        <div class="movie-card" onclick="openRecommendedMovie(${movie.id})">
-          <img src="${movie.poster || '/static/images/no-poster.png'}"
-               onerror="this.src='/static/images/no-poster.png'">
-          <h4>${movie.title || "Untitled"}</h4>
-          <p>${movie.genre || ""} ${movie.year ? "• " + movie.year : ""}</p>
-        </div>
-      `).join("");
+        count.innerText = "(" + movies.length + ")";
 
-          count.innerText = `(${recommendedMovies.length})`;
-        })
-        .catch(err => {
-          console.error("Recommendation error:", err);
-          grid.innerHTML = "<p style='color:red;'>Failed to load recommendations.</p>";
+        grid.innerHTML = "";
+
+        movies.forEach(movie => {
+
+            grid.innerHTML += `
+                <div class="movie-card" onclick="openRecommendedMovie(${movie.id})">
+
+                    <img src="${movie.poster || '/static/images/no-poster.png'}"
+                         onerror="this.src='/static/images/no-poster.png'">
+
+                    <div class="movie-info">
+                        <h3>${movie.title}</h3>
+
+                        <p>
+                            ${movie.genre || movie.genres || ""}
+                            ${movie.year ? " • " + movie.year : ""}
+                        </p>
+                    </div>
+
+                </div>
+            `;
         });
-    }
+
+    })
+    .catch(err => {
+
+        console.error(err);
+
+        grid.innerHTML =
+            "<p style='color:red;'>Failed to load recommendations.</p>";
+
+    });
+
+} 
+    
     // ==========================================
     // CAROUSEL (FIXED)
     // ==========================================
