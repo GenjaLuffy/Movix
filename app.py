@@ -312,9 +312,6 @@ def api_movie_detail(movie_id):
             "message": "Movie not found."
         }), 404
 
-    if not movie.get("poster_url"):
-        movie["poster_url"] = get_poster_url(movie.get("title", ""))
-
     return jsonify({
         "success": True,
         "movie": movie
