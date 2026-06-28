@@ -13,8 +13,6 @@ from flask import (
 
 from db import get_connection
 from recommender import MovieRecommender
-from tmdb import get_poster_url
-
 
 # =====================================================
 # FLASK APP
@@ -280,13 +278,10 @@ def api_movies():
 
     # Add poster URL if missing
     for movie in movies:
-        if not movie.get("poster_url"):
-            movie["poster_url"] = get_poster_url(movie.get("title", ""))
-
-    return jsonify({
-        "success": True,
-        "movies": movies
-    })
+        return jsonify({
+            "success": True,
+            "movies": movies
+        })
 
 
 # =====================================================
