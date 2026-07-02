@@ -374,164 +374,31 @@
         <table>
           <thead>
             <tr>
+              <th>S.N.</th>
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
               <th>Status</th>
-              <th>Actions</th>
+              <th>Created on</th>
             </tr>
           </thead>
-          <tbody id="usersTable"></tbody>
+          <tbody id="usersTable">
+            {% for user in users %}
+            <tr>
+              <td>{{ user.id }}</td>
+              <td>{{ user.first_name }} {{ user.last_name }}</td>
+              <td>{{ user.email }}</td>
+              <td>{{ user.role }}</td>
+              <td>{{ user.status }}</td>
+              <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
         </table>
       </div>
     </section>
 
     <footer style="margin-top: 28px; color: var(--text-secondary); font-size: 13px;">© 2026 Movix Admin</footer>
-  </div>
-
-  <script>
-    let users = [];
-
-    async function loadUsers() {
-      try {
-        const res = await fetch('/api/admin/users');
-        users = await res.json();
-        renderUsers();
-      } catch (err) {
-        console.error('Failed to load users', err);
-        document.getElementById('usersTable').innerHTML =
-          '<tr><td colspan="5">Could not load users.</td></tr>';
-      }
-    }
-
-    async function updateStatus(index, status) {
-      const user = users[index];
-      try {
-        await fetch(`/api/admin/users/${user.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status })
-        });
-        user.status = status;
-        renderUsers();
-      } catch (err) {
-        console.error('Failed to update status', err);
-        alert('Could not update user status.');
-      }
-    }
-
-    async function deleteUser(index) {
-      const user = users[index];
-      if (!confirm(`Delete ${user.first_name} ${user.last_name}? This cannot be undone.`)) return;
-      try {
-        await fetch(`/api/admin/users/${user.id}`, { method: 'DELETE' });
-        users.splice(index, 1);
-        renderUsers();
-      } catch (err) {
-        console.error('Failed to delete user', err);
-        alert('Could not delete user.');
-      }
-    }
-
-    function renderUsers() {
-      const tbody = document.getElementById('usersTable');
-      tbody.innerHTML = '';
-      users.forEach((user, index) => {
-        const fullName = `${user.first_name} ${user.last_name}`;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${fullName}</td>
-          <td>${user.email}</td>
-          <td>${user.role}</td>
-          <td>
-            <select class="status-select status-${user.status.toLowerCase()}" onchange="updateStatus(${index}, this.value)">
-              <option value="Active" ${user.status === 'Active' ? 'selected' : ''}>Active</option>
-              <option value="Pending" ${user.status === 'Pending' ? 'selected' : ''}>Pending</option>
-              <option value="Blocked" ${user.status === 'Blocked' ? 'selected' : ''}>Blocked</option>
-            </select>
-          </td>
-          <td>
-            <button class="btn btn-secondary" type="button" onclick="openEditModal(${index})">Edit</button>
-            <button class="btn btn-danger" type="button" onclick="deleteUser(${index})">Delete</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    let editingUserIndex = null;
-
-    function openEditModal(index) {
-      editingUserIndex = index;
-      const user = users[index];
-      document.getElementById('editName').value = `${user.first_name} ${user.last_name}`;
-      document.getElementById('editEmail').value = user.email;
-      document.getElementById('editRole').value = user.role;
-      document.getElementById('editStatus').value = user.status;
-      document.getElementById('modalBackdrop').classList.add('active');
-    }
-
-    function closeEditModal() {
-      editingUserIndex = null;
-      document.getElementById('modalBackdrop').classList.remove('active');
-    }
-
-    async function saveUserEdit() {
-      if (editingUserIndex === null) return;
-      const user = users[editingUserIndex];
-      const name = document.getElementById('editName').value;
-      const email = document.getElementById('editEmail').value;
-      const role = document.getElementById('editRole').value;
-      const status = document.getElementById('editStatus').value;
-
-      try {
-        await fetch(`/api/admin/users/${user.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, role, status })
-        });
-        const parts = name.trim().split(' ');
-        user.first_name = parts[0];
-        user.last_name = parts.slice(1).join(' ') || user.last_name;
-        user.email = email;
-        user.role = role;
-        user.status = status;
-        renderUsers();
-        closeEditModal();
-      } catch (err) {
-        console.error('Failed to save user', err);
-        alert('Could not save changes.');
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', loadUsers);
-  </script>
-
-  <div id="modalBackdrop" class="modal-backdrop" onclick="if (event.target === this) closeEditModal();">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
-      <div class="modal-header">
-        <h3 id="editModalTitle">Edit User</h3>
-        <button class="modal-close" type="button" onclick="closeEditModal()">×</button>
-      </div>
-      <div class="modal-body">
-        <label for="editName">Name</label>
-        <input id="editName" type="text" />
-        <label for="editEmail">Email</label>
-        <input id="editEmail" type="email" />
-        <label for="editRole">Role</label>
-        <input id="editRole" type="text" />
-        <label for="editStatus">Status</label>
-        <select id="editStatus" class="status-select">
-          <option value="Active">Active</option>
-          <option value="Pending">Pending</option>
-          <option value="Blocked">Blocked</option>
-        </select>
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" type="button" onclick="closeEditModal()">Cancel</button>
-        <button class="btn btn-primary" type="button" onclick="saveUserEdit()">Save Changes</button>
-      </div>
-    </div>
   </div>
 </body>
 

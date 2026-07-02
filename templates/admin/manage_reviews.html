@@ -421,159 +421,72 @@
 
     <footer style="margin-top: 28px; color: var(--text-secondary); font-size: 13px;">© 2026 Movix Admin</footer>
   </div>
-
   <script>
-    const reviews = [
-      { user: 'Jordan Steele', movie: 'Inception', rating: 9, summary: 'Mind-bending and polished.', status: 'Approved' },
-      { user: 'Tina Patel', movie: 'Parasite', rating: 8, summary: 'Intense, smart and well-paced.', status: 'Approved' },
-      { user: 'Ethan Brooks', movie: 'Dune', rating: 8, summary: 'Visually stunning but slow.', status: 'Pending' },
-      { user: 'Mia Lawson', movie: 'The Dark Knight', rating: 10, summary: 'Perfect superhero cinema.', status: 'Approved' }
-    ];
+    async function loadReviews() {
+      const tbody = document.getElementById("reviewsTable");
 
-    function renderReviews() {
-      const tbody = document.getElementById('reviewsTable');
-      tbody.innerHTML = '';
-      reviews.forEach((review, index) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${review.user}</td>
-          <td>${review.movie}</td>
-          <td>${review.rating}</td>
-          <td>${review.summary}</td>
-          <td>
-            <select class="status-select status-${review.status.toLowerCase()}" onchange="updateReviewStatus(${index}, this.value)">
-              <option value="Approved" ${review.status === 'Approved' ? 'selected' : ''}>Approved</option>
-              <option value="Pending" ${review.status === 'Pending' ? 'selected' : ''}>Pending</option>
-              <option value="Rejected" ${review.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
-            </select>
-          </td>
-          <td>
-            <button class="btn btn-secondary" type="button" onclick="openEditModal(${index})">Edit</button>
-            <button class="btn btn-danger" type="button" onclick="deleteReview(${index})">Delete</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+      try {
+        const response = await fetch("/api/admin/reviews");
+        const reviews = await response.json();
 
-    function updateReviewStatus(index, status) {
-      reviews[index].status = status;
-      renderReviews();
-    }
+        tbody.innerHTML = "";
 
-    function deleteReview(index) {
-      reviews.splice(index, 1);
-      renderReviews();
-    }
+        reviews.forEach(review => {
+          tbody.innerHTML += `
+                <tr>
+                    <td>${review.user_name}</td>
+                    <td>${review.movie_title}</td>
+                    <td>⭐ ${review.rating}/10</td>
+                    <td>${review.review_text}</td>
+                    <td>
+                        <span class="badge ${review.status.toLowerCase()}">
+                            ${review.status}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="action-badge edit"
+                                onclick="approveReview(${review.id})">
+                            Approve
+                        </button>
 
-    function openModerationModal() {
-      const pendingReviews = reviews.filter(r => r.status === 'Pending');
-      const container = document.getElementById('moderationListContainer');
-      container.innerHTML = '';
-      if (pendingReviews.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">No pending reviews</p>';
-      } else {
-        pendingReviews.forEach((review, idx) => {
-          const realIndex = reviews.indexOf(review);
-          const item = document.createElement('div');
-          item.className = 'moderation-item';
-          item.innerHTML = `
-            <div class="moderation-item-text">
-              <strong>${review.user}</strong> on <strong>${review.movie}</strong> (${review.rating}/10)
-              <br />${review.summary}
-            </div>
-            <div class="moderation-item-actions">
-              <button class="btn btn-secondary" style="flex: 1;" type="button" onclick="approveReview(${realIndex})">Approve</button>
-              <button class="btn btn-danger" type="button" onclick="rejectReview(${realIndex})">Reject</button>
-            </div>
-          `;
-          container.appendChild(item);
+                        <button class="action-badge delete"
+                                onclick="deleteReview(${review.id})">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+            `;
         });
+
+      } catch (err) {
+        console.error(err);
+        tbody.innerHTML =
+          '<tr><td colspan="6">Failed to load reviews.</td></tr>';
       }
-      document.getElementById('moderationModalBackdrop').classList.add('active');
     }
 
-    function closeModerationModal() {
-      document.getElementById('moderationModalBackdrop').classList.remove('active');
+    document.addEventListener("DOMContentLoaded", loadReviews);
+
+
+    async function approveReview(id) {
+      await fetch(`/api/admin/reviews/${id}/approve`, {
+        method: "POST"
+      });
+
+      loadReviews();
     }
 
-    function approveReview(index) {
-      reviews[index].status = 'Approved';
-      renderReviews();
-      openModerationModal();
+    async function deleteReview(id) {
+      if (!confirm("Delete this review?")) return;
+
+      await fetch(`/api/admin/reviews/${id}`, {
+        method: "DELETE"
+      });
+
+      loadReviews();
     }
-
-    function rejectReview(index) {
-      reviews[index].status = 'Rejected';
-      renderReviews();
-      openModerationModal();
-    }
-
-    let editingReviewIndex = null;
-
-    function openEditModal(index) {
-      editingReviewIndex = index;
-      const review = reviews[index];
-      document.getElementById('editReviewUser').value = review.user;
-      document.getElementById('editReviewMovie').value = review.movie;
-      document.getElementById('editReviewRating').value = review.rating;
-      document.getElementById('editReviewSummary').value = review.summary;
-      document.getElementById('editReviewModalBackdrop').classList.add('active');
-    }
-
-    function closeEditModal() {
-      editingReviewIndex = null;
-      document.getElementById('editReviewModalBackdrop').classList.remove('active');
-    }
-
-    function saveReviewEdit() {
-      const user = document.getElementById('editReviewUser').value.trim();
-      const movie = document.getElementById('editReviewMovie').value.trim();
-      const rating = Number(document.getElementById('editReviewRating').value);
-      const summary = document.getElementById('editReviewSummary').value.trim();
-      if (!user || !movie || !rating || !summary) return;
-      reviews[editingReviewIndex] = { user, movie, rating, summary, status: reviews[editingReviewIndex].status };
-      renderReviews();
-      closeEditModal();
-    }
-
-    document.addEventListener('DOMContentLoaded', renderReviews);
   </script>
 
-  <div id="moderationModalBackdrop" class="modal-backdrop" onclick="if (event.target === this) closeModerationModal();">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="moderationModalTitle">
-      <div class="modal-header">
-        <h3 id="moderationModalTitle">Moderation Queue</h3>
-        <button class="modal-close" type="button" onclick="closeModerationModal()">×</button>
-      </div>
-      <div class="modal-body">
-        <div id="moderationListContainer" class="moderation-list"></div>
-      </div>
-    </div>
-  </div>
-
-  <div id="editReviewModalBackdrop" class="modal-backdrop" onclick="if (event.target === this) closeEditModal();">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editReviewModalTitle">
-      <div class="modal-header">
-        <h3 id="editReviewModalTitle">Edit Review</h3>
-        <button class="modal-close" type="button" onclick="closeEditModal()">×</button>
-      </div>
-      <div class="modal-body">
-        <label for="editReviewUser">User</label>
-        <input id="editReviewUser" type="text" />
-        <label for="editReviewMovie">Movie</label>
-        <input id="editReviewMovie" type="text" />
-        <label for="editReviewRating">Rating</label>
-        <input id="editReviewRating" type="number" step="0.5" min="0" max="10" />
-        <label for="editReviewSummary">Review</label>
-        <textarea id="editReviewSummary"></textarea>
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" type="button" onclick="closeEditModal()">Cancel</button>
-        <button class="btn btn-primary" type="button" onclick="saveReviewEdit()">Save Changes</button>
-      </div>
-    </div>
-  </div>
 </body>
 
 </html>

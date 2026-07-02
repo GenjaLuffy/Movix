@@ -294,7 +294,8 @@
                     <button onclick="submitReview()" class="review-form-button">Submit Review</button>
                     <button id="cancelReviewBtn" type="button" onclick="cancelReviewEdit()" class="review-cancel-btn"
                         style="display:none;">Cancel Edit</button>
-                    <p id="reviewFormNote" class="review-form-note">Your review will be saved locally in the browser.
+                    <p id="reviewFormNote" class="review-form-note">
+                         Your review will be submitted for admin approval.
                     </p>
                 </div>
             </div>
@@ -356,6 +357,35 @@
         // CURRENT USER (rendered server-side from the /profile route)
         // ==========================================
         // const currentUser = {{ user | tojson | safe }};
+
+        async function submitReview() {
+
+    const title = document.getElementById("reviewTitle").value;
+    const rating = document.getElementById("reviewRating").value;
+    const review = document.getElementById("reviewText").value;
+
+    const response = await fetch("/submit_review", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            title: title,
+            rating: rating,
+            review: review
+        })
+    });
+
+    const result = await response.json();
+
+    alert(result.message);
+
+    if(result.success){
+        document.getElementById("reviewTitle").value="";
+        document.getElementById("reviewRating").value="";
+        document.getElementById("reviewText").value="";
+    }
+}
 
         // ==========================================
         // MOVIE DATABASE WITH REAL TMDB POSTERS
@@ -503,51 +533,6 @@
             document.getElementById('statTasteMatch').textContent = `${match}%`;
         }
 
-        function submitReview() {
-            const title = document.getElementById('reviewTitle').value.trim();
-            const rating = parseInt(document.getElementById('reviewRating').value, 10);
-            const text = document.getElementById('reviewText').value.trim();
-
-            if (!title || !text || Number.isNaN(rating) || rating < 1 || rating > 10) {
-                showToast('Please enter a valid title, rating (1-10), and review text.', 'error');
-                return;
-            }
-
-            const nowDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
-            if (editingReviewIndex !== null && userReviews[editingReviewIndex]) {
-                const review = userReviews[editingReviewIndex];
-                review.title = title;
-                review.rating = rating;
-                review.text = text;
-                review.date = nowDate;
-                review.movieId = currentReviewMovieId || null;
-                saveReviews();
-                renderReviewSection();
-                showToast('Review updated successfully!', 'success');
-            } else {
-                const newReview = {
-                    title,
-                    rating,
-                    date: nowDate,
-                    text,
-                    movieId: currentReviewMovieId || null
-                };
-                userReviews.unshift(newReview);
-                saveReviews();
-                renderReviewSection();
-                showToast('Review submitted successfully!', 'success');
-            }
-
-            document.getElementById('reviewTitle').value = '';
-            document.getElementById('reviewRating').value = '';
-            document.getElementById('reviewText').value = '';
-            currentReviewMovieId = null;
-            editingReviewIndex = null;
-            document.getElementById('reviewFormNote').textContent = 'Your review will be saved locally in the browser.';
-            document.getElementById('reviewFormHeader').textContent = 'Add a New Review';
-            toggleCancelButton(false);
-        }
 
         function deleteReview(index) {
             const review = userReviews[index];

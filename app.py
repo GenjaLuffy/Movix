@@ -237,6 +237,55 @@ def logout():
 def home_page():
     return render_template("index.html")
 
+
+@app.route("/submit_review", methods=["POST"])
+@login_required
+def submit_review():
+    data = request.get_json()
+
+    title = data["title"]
+    rating = data["rating"]
+    review = data["review"]
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Get movie id from title
+    cursor.execute(
+        "SELECT id FROM movies WHERE title=%s",
+        (title,)
+    )
+    movie = cursor.fetchone()
+
+    if not movie:
+        cursor.close()
+        conn.close()
+        return jsonify({
+            "success": False,
+            "message": "Movie not found."
+        })
+
+    cursor.execute("""
+        INSERT INTO reviews
+        (user_id, movie_id, rating, review_text)
+        VALUES (%s, %s, %s, %s)
+    """, (
+        session["user_id"],
+        movie["id"],
+        rating,
+        review
+    ))
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({
+        "success": True,
+        "message": "Review submitted successfully."
+    })
+
 @app.route("/profile")
 @login_required
 def profile_page():
@@ -312,10 +361,147 @@ def profile_page():
 # =====================================================
 
 @app.route("/admin")
+@app.route("/admin/dashboard")
 @admin_required
 def admin_dashboard():
-    return render_template("admin/admin_dashboard.html")
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
 
+    cursor.execute("SELECT COUNT(*) AS total_users FROM users")
+    total_users = cursor.fetchone()["total_users"]
+
+    cursor.execute("SELECT COUNT(*) AS total_movies FROM movies")
+    total_movies = cursor.fetchone()["total_movies"]
+
+    cursor.execute("SELECT COUNT(*) AS pending_reviews FROM reviews WHERE status='Pending'")
+    pending_reviews = cursor.fetchone()["pending_reviews"]
+
+    cursor.execute("SELECT COUNT(*) AS total_reviews FROM reviews")
+    total_reviews = cursor.fetchone()["total_reviews"]
+    
+
+    cursor.close()
+    conn.close()
+
+    return render_template(
+        "admin/admin_dashboard.html",   # Use the correct template path
+        total_users=total_users,
+        total_movies=total_movies,
+        pending_reviews=pending_reviews,
+        total_reviews=total_reviews
+    )
+
+@app.route("/manage_users")
+@admin_required
+def manage_users_page():
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT
+            id,
+            first_name,
+            last_name,
+            email,
+            role,
+            status,
+            created_at
+        FROM users
+        WHERE is_admin = 0
+        ORDER BY created_at DESC
+    """)
+
+    users = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template(
+        "admin/manage_users.html",
+        users=users
+    )
+
+
+@app.route("/manage_movies")
+@admin_required
+def manage_movies_page():
+    return render_template("admin/manage_movies.html")
+
+
+@app.route("/manage_watchlist")
+@admin_required
+def manage_watchlist_page():
+    return render_template("admin/manage_watchlist.html")
+
+@app.route("/manage_reviews")
+@admin_required
+def manage_reviews_page():
+    return render_template("admin/manage_reviews.html")
+
+
+@app.route("/api/admin/reviews")
+@admin_required
+def api_admin_reviews():
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT
+            r.id,
+            CONCAT(u.first_name, ' ', u.last_name) AS user_name,
+            m.title AS movie_title,
+            r.rating,
+            r.review_text,
+            r.status
+        FROM reviews r
+        JOIN users u ON r.user_id = u.id
+        JOIN movies m ON r.movie_id = m.id
+        ORDER BY r.created_at DESC
+    """)
+
+    reviews = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify(reviews)
+
+# =====================================================
+# Review Code
+# =====================================================
+@app.route("/api/admin/reviews/<int:review_id>/approve", methods=["POST"])
+@admin_required
+def approve_review(review_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE reviews SET status='Approved' WHERE id=%s",
+        (review_id,)
+    )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify({"success": True})
+
+@app.route("/api/admin/reviews/<int:review_id>", methods=["DELETE"])
+@admin_required
+def delete_review(review_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "DELETE FROM reviews WHERE id=%s",
+        (review_id,)
+    )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify({"success": True})
 
 # =====================================================
 # MOVIES API

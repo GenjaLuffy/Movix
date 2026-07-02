@@ -372,60 +372,80 @@
 
 <body>
     <div class="page">
+
+        <!-- Navigation -->
         <header class="nav">
             <div class="nav-content">
-                <a class="logo" href="/admin"><span>Mo</span>Vix Admin</a>
-                <div class="nav-links">
-                    <a href="/admin">Dashboard</a>
-                    <a href="/manage_users">Users</a>
-                    <a href="/manage_reviews">Watchlist</a>
-                    <a href="/manage_reviews">Reviews</a>
-                </div>
-                <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-icon" title="Logout">Logout
+                <a class="logo" href="{{ url_for('admin_dashboard') }}">
+                    <span>Mo</span>Vix Admin
                 </a>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 21a8 8 0 0 0-16 0" />
-                    <circle cx="12" cy="7" r="4" />
-                </svg>
-                </button>
+
+                <div class="nav-links">
+                    <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+                    <a href="{{ url_for('manage_users_page') }}">Users</a>
+                    <a href="{{ url_for('manage_movies_page') }}">Movies</a>
+                    <a href="{{ url_for('manage_reviews_page') }}">Reviews</a>
+                </div>
+
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary">
+                    Logout
+                </a>
             </div>
-
-
         </header>
+
+        <!-- Hero -->
         <div class="hero-card hero">
             <div>
                 <h1>Admin Dashboard</h1>
-                <p>Manage the Movix platform from a single dashboard. View users, movies, watchlist activity, and quick
-                    insights in the same style as the main site.</p>
+                <p>
+                    Manage users, movies, reviews, and monitor platform activity from one place.
+                </p>
             </div>
+
             <div class="stats-grid">
+
                 <a href="{{ url_for('manage_users_page') }}" class="stat-box">
                     <small>Total Users</small>
-                    <strong id="totalUsers">—</strong>
+                    <strong>{{ total_users }}</strong>
                 </a>
+
                 <a href="{{ url_for('manage_movies_page') }}" class="stat-box">
-                    <small>Movies</small>
-                    <strong id="totalMovies">—</strong>
+                    <small>Total Movies</small>
+                    <strong>{{ total_movies }}</strong>
                 </a>
-                <a href="{{ url_for('manage_watchlist_page') }}" class="stat-box">
+
+                <a href="{{ url_for('manage_reviews_page') }}" class="stat-box">
                     <small>Pending Reviews</small>
-                    <strong id="totalWatchlist">—</strong>
+                    <strong>{{ pending_reviews }}</strong>
                 </a>
+
                 <a href="{{ url_for('manage_reviews_page') }}" class="stat-box">
                     <small>Total Reviews</small>
-                    <strong id="avgRating">—</strong>
+                    <strong>{{ total_reviews }}</strong>
                 </a>
+
             </div>
         </div>
 
+        <!-- Users + Summary -->
         <div class="section-grid">
+
+            <!-- Recent Users -->
             <section class="panel">
+
                 <div class="panel-header">
                     <h2>Recent Users</h2>
-                    <a class="btn btn-secondary" href="{{ url_for('manage_users_page') }}">View Users</a>
+
+                    <a class="btn btn-secondary"
+                       href="{{ url_for('manage_users_page') }}">
+                        View Users
+                    </a>
                 </div>
+
                 <div class="table-wrap">
+
                     <table>
+
                         <thead>
                             <tr>
                                 <th>Name</th>
@@ -434,54 +454,132 @@
                                 <th>Status</th>
                             </tr>
                         </thead>
-                        <tbody id="usersTable"></tbody>
+
+                        <tbody>
+
+                            {% if recent_users %}
+
+                                {% for user in recent_users %}
+                                <tr>
+
+                                    <td>
+                                        {{ user.first_name }} {{ user.last_name }}
+                                    </td>
+
+                                    <td>{{ user.email }}</td>
+
+                                    <td>{{ user.role }}</td>
+
+                                    <td>
+                                        <span class="badge {{ user.status|lower }}">
+                                            {{ user.status }}
+                                        </span>
+                                    </td>
+
+                                </tr>
+                                {% endfor %}
+
+                            {% else %}
+
+                                <tr>
+                                    <td colspan="4" style="text-align:center;">
+                                        No users found.
+                                    </td>
+                                </tr>
+
+                            {% endif %}
+
+                        </tbody>
+
                     </table>
+
                 </div>
+
             </section>
 
+            <!-- Platform Summary -->
             <section class="panel">
+
                 <div class="panel-header">
                     <h2>Platform Summary</h2>
-                    <a class="btn btn-primary" href="{{ url_for('manage_movies_page') }}">Manage Movies</a>
+
+                    <a class="btn btn-primary"
+                       href="{{ url_for('manage_movies_page') }}">
+                        Manage Movies
+                    </a>
+
                 </div>
+
                 <div class="table-wrap">
+
                     <table>
+
                         <thead>
                             <tr>
                                 <th>Metric</th>
                                 <th>Value</th>
                             </tr>
                         </thead>
+
                         <tbody>
+
                             <tr>
-                                <td>Active users</td>
-                                <td id="activeUsersMetric">—</td>
+                                <td>Active Users</td>
+                                <td>{{ total_users }}</td>
                             </tr>
+
                             <tr>
-                                <td>Total reviews</td>
-                                <td id="totalReviewsMetric">—</td>
+                                <td>Total Movies</td>
+                                <td>{{ total_movies }}</td>
                             </tr>
+
                             <tr>
-                                <td>Pending reviews</td>
-                                <td id="pendingReviewsMetric">—</td>
+                                <td>Total Reviews</td>
+                                <td>{{ total_reviews }}</td>
                             </tr>
+
                             <tr>
-                                <td>System status</td>
-                                <td><span class="badge active">Healthy</span></td>
+                                <td>Pending Reviews</td>
+                                <td>{{ pending_reviews }}</td>
                             </tr>
+
+                            <tr>
+                                <td>System Status</td>
+                                <td>
+                                    <span class="badge active">
+                                        Healthy
+                                    </span>
+                                </td>
+                            </tr>
+
                         </tbody>
+
                     </table>
+
                 </div>
+
             </section>
+
         </div>
 
+        <!-- Top Movies -->
         <section class="panel">
+
             <div class="panel-header">
-                <h2>Top Movies</h2>
-                <a class="btn btn-secondary" href="{{ url_for('manage_movies_page') }}">Manage</a>
+
+                <h2>Latest Movies</h2>
+
+                <a class="btn btn-secondary"
+                   href="{{ url_for('manage_movies_page') }}">
+                    Manage Movies
+                </a>
+
             </div>
+
             <div class="table-wrap">
+
                 <table>
+
                     <thead>
                         <tr>
                             <th>Title</th>
@@ -489,88 +587,54 @@
                             <th>Year</th>
                             <th>Rating</th>
                             <th>Status</th>
-                            <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody id="moviesTable"></tbody>
+
+                    <tbody>
+
+                        {% if recent_movies %}
+
+                            {% for movie in recent_movies %}
+                            <tr>
+
+                                <td>{{ movie.title }}</td>
+                                <td>{{ movie.genre }}</td>
+                                <td>{{ movie.year }}</td>
+                                <td>{{ movie.rating }}</td>
+
+                                <td>
+                                    <span class="badge {{ movie.status|lower }}">
+                                        {{ movie.status }}
+                                    </span>
+                                </td>
+
+                            </tr>
+                            {% endfor %}
+
+                        {% else %}
+
+                            <tr>
+                                <td colspan="5" style="text-align:center;">
+                                    No movies found.
+                                </td>
+                            </tr>
+
+                        {% endif %}
+
+                    </tbody>
+
                 </table>
+
             </div>
+
         </section>
 
-        <footer class="footer">© 2026 Movix. Admin dashboard.</footer>
+        <footer class="footer">
+            © 2026 Movix. Admin Dashboard.
+        </footer>
+
     </div>
 
-    <script>
-        async function loadStats() {
-            try {
-                const res = await fetch('/api/admin/stats');
-                const stats = await res.json();
-                document.getElementById('totalUsers').textContent = stats.total_users ?? '—';
-                document.getElementById('totalMovies').textContent = stats.total_movies ?? '—';
-                document.getElementById('totalWatchlist').textContent = stats.pending_reviews ?? '—';
-                document.getElementById('avgRating').textContent = stats.total_reviews ?? '—';
-                document.getElementById('activeUsersMetric').textContent = stats.active_users ?? '—';
-                document.getElementById('totalReviewsMetric').textContent = stats.total_reviews ?? '—';
-                document.getElementById('pendingReviewsMetric').textContent = stats.pending_reviews ?? '—';
-            } catch (err) {
-                console.error('Failed to load stats', err);
-            }
-        }
-
-        async function loadUsers() {
-            const tbody = document.getElementById('usersTable');
-            try {
-                const res = await fetch('/api/admin/users');
-                const users = await res.json();
-                tbody.innerHTML = '';
-                users.slice(0, 5).forEach(user => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${user.first_name} ${user.last_name}</td>
-                        <td>${user.email}</td>
-                        <td>${user.role}</td>
-                        <td><span class="badge ${user.status.toLowerCase()}">${user.status}</span></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } catch (err) {
-                console.error('Failed to load users', err);
-                tbody.innerHTML = '<tr><td colspan="4">Could not load users.</td></tr>';
-            }
-        }
-
-        async function loadMovies() {
-            const tbody = document.getElementById('moviesTable');
-            try {
-                const res = await fetch('/api/admin/movies');
-                const movies = await res.json();
-                tbody.innerHTML = '';
-                movies.slice(0, 8).forEach(movie => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${movie.title}</td>
-                        <td>${movie.genre}</td>
-                        <td>${movie.year}</td>
-                        <td>${movie.rating}</td>
-                        <td><span class="badge ${movie.status.toLowerCase()}">${movie.status}</span></td>
-                        <td>
-                            <a href="{{ url_for('manage_movies_page') }}" class="action-badge edit">Edit</a>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } catch (err) {
-                console.error('Failed to load movies', err);
-                tbody.innerHTML = '<tr><td colspan="6">Could not load movies.</td></tr>';
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            loadStats();
-            loadUsers();
-            loadMovies();
-        });
-    </script>
 </body>
 
 </html>
