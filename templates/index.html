@@ -427,51 +427,93 @@
         });
     }
 
-    function createMovieCard(movie, size = 'medium') {
-      const card = document.createElement('div');
-      card.className = `movie-card ${size}`;
-      card.onclick = () => openMovie(movie.id);
+    function createMovieCard(movie, size = "medium") {
+      const {
+        id,
+        title,
+        poster,
+        rating,
+        year,
+        genre
+      } = movie;
 
-      const inWl = watchlist.includes(movie.id);
-      const inFav = favorites.includes(movie.id);
+      const card = document.createElement("div");
+      card.className = `movie-card ${size}`;
+      card.addEventListener("click", () => openMovie(id));
+
+      const inWatchlist = watchlist.includes(id);
+      const inFavorites = favorites.includes(id);
 
       card.innerHTML = `
         <div class="movie-poster">
-          <img src="${movie.poster}" alt="${movie.title}" loading="lazy" onerror="this.onerror=null;this.src='https://via.placeholder.com/500x750/1a1a1a/e50914?text=${encodeURIComponent(movie.title)}'">
-          <div class="movie-rating"><span class="star">★</span> ${movie.rating}</div>
-          <div class="movie-actions">
-            <button class="action-btn ${inWl ? 'active' : ''}" onclick="event.stopPropagation();toggleWatchlist(${movie.id})" title="Watchlist">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="${inWl ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
-            </button>
-            <button class="action-btn ${inFav ? 'active' : ''}" onclick="event.stopPropagation();toggleFavorite(${movie.id})" title="Favorite">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="${inFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-            </button>
-          </div>
+            <img
+                src="${poster}"
+                alt="${title}"
+                loading="lazy"
+                onerror="this.onerror=null;this.src='https://via.placeholder.com/500x750/1a1a1a/e50914?text=${encodeURIComponent(title)}'"
+            >
+
+            <div class="movie-rating">
+                <span class="star">★</span> ${rating}
+            </div>
+
+            <div class="movie-actions">
+                <button
+                    class="action-btn ${inWatchlist ? "active" : ""}"
+                    onclick="event.stopPropagation();toggleWatchlist(${id})"
+                    title="Add to Watchlist"
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24"
+                        fill="${inWatchlist ? "currentColor" : "none"}"
+                        stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+                    </svg>
+                </button>
+
+                <button
+                    class="action-btn ${inFavorites ? "active" : ""}"
+                    onclick="event.stopPropagation();toggleFavorite(${id})"
+                    title="Add to Favorites"
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24"
+                        fill="${inFavorites ? "currentColor" : "none"}"
+                        stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                    </svg>
+                </button>
+            </div>
         </div>
+
         <div class="movie-info">
-          <h3 class="movie-title">${movie.title}</h3>
-          <div class="movie-meta">
-            <span>${movie.year}</span>
-            <span>•</span>
-            <span>${movie.genre}</span>
-          </div>
+            <h3 class="movie-title">${title}</h3>
+
+            <div class="movie-meta">
+                <span>${year}</span>
+                <span>•</span>
+                <span>${genre}</span>
+            </div>
         </div>
-      `;
+    `;
+
       return card;
     }
+   function createSimilarCard(movie) {
+    const card = document.createElement('div');
+    card.className = 'similar-card';
+    card.onclick = () => openModal(movie.id);
 
-    function createSimilarCard(movie) {
-      const card = document.createElement('div');
-      card.className = 'similar-card';
-      card.onclick = () => openModal(movie.id);
-      card.innerHTML = `
-        <img src="${movie.poster}" alt="${movie.title}" loading="lazy" onerror="this.onerror=null;this.src='https://via.placeholder.com/165x250/1a1a1a/e50914?text=${encodeURIComponent(movie.title)}'">
+    card.innerHTML = `
+        <img src="${movie.poster}" alt="${movie.title}" loading="lazy"
+        onerror="this.onerror=null;this.src='https://via.placeholder.com/165x250/1a1a1a/e50914?text=${encodeURIComponent(movie.title)}'">
+
         <p class="similar-card-title">${movie.title}</p>
         <p class="similar-card-rating">★ ${movie.rating}</p>
-      `;
-      return card;
-    }
+    `;
 
+    return card;
+}
     // ==========================================
     // RENDER
     // ==========================================
@@ -517,18 +559,18 @@
     }
 
     function filterGenre(genre, el) {
-  document.querySelectorAll('.genre-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
+      document.querySelectorAll('.genre-chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
 
-  const filtered =
-    genre === 'All'
-      ? movies
-      : movies.filter(m =>
-          (m.genre || "").split("|").map(g => g.trim()).includes(genre)
-        );
+      const filtered =
+        genre === 'All'
+          ? movies
+          : movies.filter(m =>
+            (m.genre || "").split("|").map(g => g.trim()).includes(genre)
+          );
 
-  renderMovies('genreGrid', filtered, 'medium');
-}
+      renderMovies('genreGrid', filtered, 'medium');
+    }
 
     function renderWatchlist() {
       const wlMovies = movies.filter(m => watchlist.includes(m.id));
@@ -697,54 +739,54 @@
     // ==========================================
     // RECOMMENDATION ENGINE
     // ==========================================
-   function getRecommendations() {
+    function getRecommendations() {
 
-    const payload = {
+      const payload = {
         genre: document.getElementById("recGenre").value,
         mood: document.getElementById("recMood").value,
         language: document.getElementById("recLanguage").value,
         year: document.getElementById("recYear").value
-    };
+      };
 
-    const grid = document.getElementById("recGrid");
-    const section = document.getElementById("recResults");
-    const count = document.getElementById("recCount");
+      const grid = document.getElementById("recGrid");
+      const section = document.getElementById("recResults");
+      const count = document.getElementById("recCount");
 
-    section.style.display = "block";
-    grid.innerHTML = "<p>Loading recommendations...</p>";
+      section.style.display = "block";
+      grid.innerHTML = "<p>Loading recommendations...</p>";
 
-    fetch("/api/recommendations", {
+      fetch("/api/recommendations", {
         method: "POST",
         headers: {
-            "Content-Type": "application/json"
+          "Content-Type": "application/json"
         },
         body: JSON.stringify(payload)
-    })
-    .then(async response => {
+      })
+        .then(async response => {
 
-        if (!response.ok) {
+          if (!response.ok) {
             throw new Error("HTTP " + response.status);
-        }
+          }
 
-        return response.json();
-    })
-    .then(data => {
+          return response.json();
+        })
+        .then(data => {
 
-        console.log(data);
+          console.log(data);
 
-        const movies = data.recommendations || [];
+          const movies = data.recommendations || [];
 
-        if (movies.length === 0) {
+          if (movies.length === 0) {
             grid.innerHTML = "<p>No recommendations found.</p>";
             count.innerText = "(0)";
             return;
-        }
+          }
 
-        count.innerText = "(" + movies.length + ")";
+          count.innerText = "(" + movies.length + ")";
 
-        grid.innerHTML = "";
+          grid.innerHTML = "";
 
-        movies.forEach(movie => {
+          movies.forEach(movie => {
 
             grid.innerHTML += `
                 <div class="movie-card" onclick="openRecommendedMovie(${movie.id})">
@@ -763,20 +805,20 @@
 
                 </div>
             `;
-        });
+          });
 
-    })
-    .catch(err => {
+        })
+        .catch(err => {
 
-        console.error(err);
+          console.error(err);
 
-        grid.innerHTML =
+          grid.innerHTML =
             "<p style='color:red;'>Failed to load recommendations.</p>";
 
-    });
+        });
 
-} 
-    
+    }
+
     // ==========================================
     // CAROUSEL (FIXED)
     // ==========================================
@@ -847,43 +889,43 @@
     // ==========================================
     // FORM OPTIONS
     // ==========================================
-   function populateSelects() {
-  // ✅ FIX: split multi-genres properly
-  const genres = [
-    ...new Set(
-      movies.flatMap(m => (m.genre || "").split("|"))
-    )
-  ].map(g => g.trim()).filter(Boolean).sort();
+    function populateSelects() {
+      // ✅ FIX: split multi-genres properly
+      const genres = [
+        ...new Set(
+          movies.flatMap(m => (m.genre || "").split("|"))
+        )
+      ].map(g => g.trim()).filter(Boolean).sort();
 
-  const languages = [
-    ...new Set(movies.map(m => m.language || "Unknown"))
-  ].filter(Boolean).sort();
+      const languages = [
+        ...new Set(movies.map(m => m.language || "Unknown"))
+      ].filter(Boolean).sort();
 
-  const years = [
-    ...new Set(movies.map(m => m.year).filter(Boolean))
-  ].sort((a, b) => b - a);
+      const years = [
+        ...new Set(movies.map(m => m.year).filter(Boolean))
+      ].sort((a, b) => b - a);
 
-  const genreEl = document.getElementById('recGenre');
-  const langEl = document.getElementById('recLanguage');
-  const yearEl = document.getElementById('recYear');
+      const genreEl = document.getElementById('recGenre');
+      const langEl = document.getElementById('recLanguage');
+      const yearEl = document.getElementById('recYear');
 
-  // clear first (VERY IMPORTANT to avoid duplicates on reload)
-  genreEl.innerHTML = `<option value="">All Genres</option>`;
-  langEl.innerHTML = `<option value="">All Languages</option>`;
-  yearEl.innerHTML = `<option value="">Any Year</option>`;
+      // clear first (VERY IMPORTANT to avoid duplicates on reload)
+      genreEl.innerHTML = `<option value="">All Genres</option>`;
+      langEl.innerHTML = `<option value="">All Languages</option>`;
+      yearEl.innerHTML = `<option value="">Any Year</option>`;
 
-  genres.forEach(g =>
-    genreEl.innerHTML += `<option value="${g}">${g}</option>`
-  );
+      genres.forEach(g =>
+        genreEl.innerHTML += `<option value="${g}">${g}</option>`
+      );
 
-  languages.forEach(l =>
-    langEl.innerHTML += `<option value="${l}">${l}</option>`
-  );
+      languages.forEach(l =>
+        langEl.innerHTML += `<option value="${l}">${l}</option>`
+      );
 
-  years.forEach(y =>
-    yearEl.innerHTML += `<option value="${y}">${y}</option>`
-  );
-}
+      years.forEach(y =>
+        yearEl.innerHTML += `<option value="${y}">${y}</option>`
+      );
+    }
 
     // ==========================================
     // INIT
