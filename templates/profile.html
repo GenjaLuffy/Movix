@@ -17,15 +17,14 @@
     <!-- Navigation -->
     <nav class="nav">
         <div class="nav-content">
-            <a href="index.html" style="text-decoration:none;">
+            <a href="/home" style="text-decoration:none;">
                 <span style="font-size:24px;font-weight:900;">
                     <span style="color:var(--primary)">Mo</span>Vix
                 </span>
             </a>
 
             <div class="flex items-center gap-8">
-                <a href="index.html#trending"
-                    class="text-sm font-medium text-gray-400 hover:text-white transition">Home</a>
+                <a href="/home" class="text-sm font-medium text-gray-400 hover:text-white transition">Home</a>
                 <a href="index.html#genres"
                     class="text-sm font-medium text-gray-400 hover:text-white transition">Genres</a>
                 <a href="index.html#recommend"
@@ -42,7 +41,8 @@
 
                 <div
                     class="w-9 h-9 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-white font-bold cursor-pointer">
-                    <a href="profile.html">JD</a>
+                    <a href="/profile">{{ (user.first_name[0] ~ user.last_name[0])|upper if user and user.first_name
+                        and user.last_name else "?" }}</a>
                 </div>
             </div>
         </div>
@@ -52,9 +52,7 @@
         <!-- Profile Header -->
         <div class="flex flex-col md:flex-row gap-10 items-start mb-16">
             <div class="relative group w-36 h-36 flex-shrink-0">
-                <img id="profileAvatar"
-                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face"
-                    alt="Profile Picture"
+                <img id="profileAvatar" src="../static/images/user.png" alt="Profile Picture"
                     class="w-36 h-36 object-cover rounded-3xl border-4 border-zinc-900 shadow-2xl">
 
                 <div onclick="triggerFileInput()"
@@ -72,11 +70,22 @@
             <div class="flex-1">
                 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
                     <div>
-                        <h1 class="text-4xl font-bold">John Doe</h1>
-                        <p class="text-gray-400 mt-2 text-lg">@johndoe</p>
+                        <h1 class="text-4xl font-bold">{{ user.first_name }} {{ user.last_name }}</h1>
+                        <p class="text-gray-400 mt-2 text-lg">{{ user.email }}</p>
                         <p class="text-gray-500 mt-4 max-w-lg text-[17px]">
-                            Movie enthusiast | Sci-Fi & Thriller lover | 142 films watched this year
+                            {{ user.address if user.address else "No address on file" }}
+                            {% if user.created_at %}
+                            · Member since {{ user.created_at.strftime('%B %Y') }}
+                            {% endif %}
                         </p>
+                        <div class="flex items-center gap-3 mt-4">
+                            <span
+                                class="px-3 py-1 rounded-full text-xs font-semibold bg-zinc-800 text-gray-300 capitalize">{{
+                                user.role }}</span>
+                            <span
+                                class="px-3 py-1 rounded-full text-xs font-semibold {{ 'bg-emerald-500/20 text-emerald-400' if user.status == 'Active' else 'bg-red-500/20 text-red-400' }}">{{
+                                user.status }}</span>
+                        </div>
                     </div>
                     <button onclick="editProfile()" class="edit-btn self-start whitespace-nowrap">
                         ✏️ Edit Profile
@@ -109,9 +118,12 @@
                                 </button>
                             </div>
 
-                            <input id="editName" class="input" placeholder="Full Name">
-                            <input id="editUsername" class="input" placeholder="Username">
-                            <textarea id="editBio" class="input h-28 resize-none" placeholder="Bio"></textarea>
+                            <div class="grid grid-cols-2 gap-4">
+                                <input id="editFirstName" class="input" placeholder="First Name">
+                                <input id="editLastName" class="input" placeholder="Last Name">
+                            </div>
+                            <input id="editEmail" class="input" type="email" placeholder="Email">
+                            <textarea id="editAddress" class="input h-28 resize-none" placeholder="Address"></textarea>
 
                             <button onclick="saveProfile()" class="save-btn">
                                 Save Changes
@@ -123,15 +135,17 @@
                 <!-- Stats -->
                 <div class="stats-grid mt-12">
                     <div class="stat-card">
-                        <div class="text-4xl cursor-pointer text-purple-400" id="statWatched">0</div>
+                        <div class="text-4xl cursor-pointer text-purple-400" id="statWatched">{{ watched_count }}</div>
                         <div class="text-sm text-gray-400 mt-2">Movies Watched</div>
                     </div>
                     <a href="#watchlistPreview" class="stat-card stat-card-link">
-                        <div class="text-4xl cursor-pointer font-bold text-amber-400" id="statWatchlist">0</div>
+                        <div class="text-4xl cursor-pointer font-bold text-amber-400" id="statWatchlist">{{
+                            watchlist_count }}</div>
                         <div class="text-sm text-gray-400 mt-2">In Watchlist</div>
                     </a>
                     <a href="#favoritesPreview" class="stat-card stat-card-link">
-                        <div class="text-4xl cursor-pointer font-bold text-pink-400" id="statFavorites">0</div>
+                        <div class="text-4xl cursor-pointer font-bold text-pink-400" id="statFavorites">{{
+                            favorites_count }}</div>
                         <div class="text-sm text-gray-400 mt-2">Favorites</div>
                     </a>
                     <div class="stat-card">
@@ -145,7 +159,19 @@
         <!-- Favorite Genres -->
         <div class="mb-16">
             <h2 class="text-3xl font-bold mb-6">Favorite Genres</h2><br>
-            <div class="flex cursor-pointer gap-4" id="genreChips"></div><br>
+            <div class="flex cursor-pointer gap-4" id="genreChips">
+                {% if favorites %}
+                {% for movie in favorites %}
+                <div class="movie-card">
+                    <img src="{{ movie.poster }}" alt="{{ movie.title }}">
+                    <h3>{{ movie.title }}</h3>
+                    <p>{{ movie.year }}</p>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-gray-400">No favorite movies.</p>
+                {% endif %}
+            </div><br>
         </div>
 
         <!-- Watchlist -->
@@ -155,7 +181,19 @@
                         id="wlCount">(0)</span></h2>
                 <a href="index.html#watchlist" class="text-purple-400 hover:text-purple-300 font-medium">View all →</a>
             </div>
-            <div id="watchlistPreview" class="movie-grid"></div><br>
+            <div id="watchlistPreview" class="movie-grid">
+                {% if watchlist %}
+                {% for movie in watchlist %}
+                <div class="movie-card">
+                    <img src="{{ movie.poster }}" alt="{{ movie.title }}">
+                    <h3>{{ movie.title }}</h3>
+                    <p>{{ movie.year }}</p>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-gray-400">No movies in watchlist.</p>
+                {% endif %}
+            </div><br>
         </div>
         <!-- Favorites -->
         <div>
@@ -173,28 +211,91 @@
             <div class="review-header flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between mb-8">
                 <div>
                     <h2 class="text-3xl font-bold">My Reviews</h2>
-                    <p class="text-gray-500 mt-2 max-w-xl">Share your latest movie opinions with the community and keep your review history handy.</p>
+                    <p class="text-gray-500 mt-2 max-w-xl">Share your latest movie opinions with the community and keep
+                        your review history handy.</p>
                 </div>
-                <button onclick="openReviewForm()"
-                    class="review-cta">
+                <button onclick="openReviewForm()" class="review-cta">
                     ✍️ Write a Review
                 </button>
             </div> <br>
 
-            <div id="reviewSection" class="grid gap-6 md:grid-cols-2"></div><br>
+            <div id="reviewSection" class="grid gap-6 md:grid-cols-2">
+
+                {% if reviews %}
+
+                {% for review in reviews %}
+
+                <div class="bg-gray-900 rounded-xl border border-gray-700 p-5">
+
+                    <div class="flex justify-between items-start mb-3">
+
+                        <h3 class="text-xl font-semibold text-white">
+                            {{ review.title }}
+                        </h3>
+
+                        <span class="text-yellow-400 font-bold">
+                            ⭐ {{ review.rating }}/10
+                        </span>
+
+                    </div>
+
+                    <p class="text-gray-300 mb-4">
+                        {{ review.review_text }}
+                    </p>
+
+                    <div class="flex justify-between items-center text-sm">
+
+                        <span class="text-gray-500">
+                            {{ review.created_at.strftime('%d %b %Y') }}
+                        </span>
+
+                        {% if review.status == 'Approved' %}
+                        <span class="text-green-400 font-medium">
+                            Approved
+                        </span>
+                        {% elif review.status == 'Pending' %}
+                        <span class="text-yellow-400 font-medium">
+                            Pending
+                        </span>
+                        {% else %}
+                        <span class="text-red-400 font-medium">
+                            Rejected
+                        </span>
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+                {% endfor %}
+
+                {% else %}
+
+                <div class="col-span-2 text-center text-gray-400 py-10">
+                    You haven't written any reviews yet.
+                </div>
+
+                {% endif %}
+
+            </div><br>
 
             <div id="reviewFormCard" class="review-form-wrapper mt-12">
-                <div id="toastNotification" class="toast hidden"><span id="toastIcon" class="toast-icon"></span><span id="toastText" class="toast-text"></span><button id="toastAction" class="toast-action" type="button"></button></div>
+                <div id="toastNotification" class="toast hidden"><span id="toastIcon" class="toast-icon"></span><span
+                        id="toastText" class="toast-text"></span><button id="toastAction" class="toast-action"
+                        type="button"></button></div>
                 <h3 id="reviewFormHeader" class="text-2xl font-semibold mb-4">Add a New Review</h3><br>
                 <div class="grid gap-4 md:grid-cols-2">
                     <input id="reviewTitle" class="input" type="text" placeholder="Movie title" />
                     <input id="reviewRating" class="input" type="number" min="1" max="10" placeholder="Rating (1-10)" />
                 </div><br>
-                <textarea id="reviewText" class="input h-32 resize-none mt-4" placeholder="Write your review here..."></textarea>
+                <textarea id="reviewText" class="input h-32 resize-none mt-4"
+                    placeholder="Write your review here..."></textarea>
                 <div class="review-form-footer">
                     <button onclick="submitReview()" class="review-form-button">Submit Review</button>
-                    <button id="cancelReviewBtn" type="button" onclick="cancelReviewEdit()" class="review-cancel-btn" style="display:none;">Cancel Edit</button>
-                    <p id="reviewFormNote" class="review-form-note">Your review will be saved locally in the browser.</p>
+                    <button id="cancelReviewBtn" type="button" onclick="cancelReviewEdit()" class="review-cancel-btn"
+                        style="display:none;">Cancel Edit</button>
+                    <p id="reviewFormNote" class="review-form-note">Your review will be saved locally in the browser.
+                    </p>
                 </div>
             </div>
         </div>
@@ -227,7 +328,7 @@
                     <button onclick="watchTrailer()" class="action-btn btn-trailer">
                         <span class="text-xl">▶</span> Watch Trailer
                     </button>
-                    
+
                     <button onclick="toggleWatchlistModal()" id="modalWlBtn"
                         class="action-btn border border-white/30 hover:border-white/90">
                         Remove Watchlist
@@ -237,9 +338,10 @@
                         Remove Favorite
                     </button>
                 </div><br>
-                <button id="modalReviewBtn" onclick="openReviewForm(currentMovieId)" class="action-btn cursor-pointer btn-review">
-                        ✍️ Review Movie
-                    </button>
+                <button id="modalReviewBtn" onclick="openReviewForm(currentMovieId)"
+                    class="action-btn cursor-pointer btn-review">
+                    ✍️ Review Movie
+                </button>
 
                 <div class="mt-12">
                     <h3 class="text-xl font-semibold mb-6">Similar Movies</h3>
@@ -250,6 +352,11 @@
     </div>
 
     <script>
+        // ==========================================
+        // CURRENT USER (rendered server-side from the /profile route)
+        // ==========================================
+        // const currentUser = {{ user | tojson | safe }};
+
         // ==========================================
         // MOVIE DATABASE WITH REAL TMDB POSTERS
         // ==========================================
@@ -394,101 +501,6 @@
             const favoriteScore = favorites.length * 2;
             const match = Math.min(100, 40 + genreScore + favoriteScore);
             document.getElementById('statTasteMatch').textContent = `${match}%`;
-        }
-
-        function renderWatchlist() {
-            const container = document.getElementById('watchlistPreview');
-            container.innerHTML = '';
-            const items = movies.filter(m => watchlist.includes(m.id));
-            items.forEach(m => container.appendChild(createMiniCard(m, 'watchlist')));
-
-            document.getElementById('wlCount').textContent = `(${items.length})`;
-            document.getElementById('statWatchlist').textContent = items.length;
-        }
-
-        function renderFavorites() {
-            const container = document.getElementById('favoritesPreview');
-            container.innerHTML = '';
-            const items = movies.filter(m => favorites.includes(m.id));
-            items.forEach(m => container.appendChild(createMiniCard(m, 'favorites')));
-
-            document.getElementById('favCount').textContent = `(${items.length})`;
-            document.getElementById('statFavorites').textContent = items.length;
-            renderTasteMatch();
-        }
-
-        function renderReviewSection() {
-            const container = document.getElementById('reviewSection');
-            container.innerHTML = '';
-
-            if (!userReviews.length) {
-                container.innerHTML = `
-                    <div class="review-card review-card-empty">
-                        <p class="review-card-title">No reviews yet</p>
-                        <p class="review-card-text text-gray-400">Write your first movie review to see it appear here.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            userReviews.forEach((review, index) => {
-                const movie = review.movieId ? getMovie(review.movieId) : null;
-                const card = document.createElement('div');
-                card.className = 'review-card';
-
-                const header = document.createElement('div');
-                header.className = 'review-card-header';
-
-                const headerTitle = document.createElement('div');
-                const title = document.createElement('p');
-                title.className = 'review-card-title';
-                title.textContent = review.title;
-                const date = document.createElement('p');
-                date.className = 'review-card-date';
-                date.textContent = review.date;
-                headerTitle.appendChild(title);
-                headerTitle.appendChild(date);
-
-                const rating = document.createElement('div');
-                rating.className = 'text-yellow-400 font-semibold text-lg';
-                rating.textContent = `★ ${review.rating}`;
-
-                header.appendChild(headerTitle);
-                header.appendChild(rating);
-                card.appendChild(header);
-
-                const text = document.createElement('p');
-                text.className = 'review-card-text';
-                text.textContent = review.text;
-                card.appendChild(text);
-
-                if (movie) {
-                    const movieMeta = document.createElement('p');
-                    movieMeta.className = 'review-card-movie';
-                    movieMeta.innerHTML = `Review for: <span class="review-card-movie-title">${movie.title}</span> • ${movie.genre} (${movie.year})`;
-                    card.appendChild(movieMeta);
-                }
-
-                const actions = document.createElement('div');
-                actions.className = 'review-card-actions';
-
-                const editBtn = document.createElement('button');
-                editBtn.type = 'button';
-                editBtn.className = 'review-edit-btn';
-                editBtn.textContent = 'Edit Review';
-                editBtn.addEventListener('click', () => editReview(index));
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.type = 'button';
-                deleteBtn.className = 'review-delete-btn';
-                deleteBtn.textContent = 'Delete';
-                deleteBtn.addEventListener('click', () => deleteReview(index));
-
-                actions.appendChild(editBtn);
-                actions.appendChild(deleteBtn);
-                card.appendChild(actions);
-                container.appendChild(card);
-            });
         }
 
         function submitReview() {
@@ -810,10 +822,10 @@
         function editProfile() {
             const modal = document.getElementById('editModal');
 
-            document.getElementById('editName').value = "John Doe";
-            document.getElementById('editUsername').value = "@johndoe";
-            document.getElementById('editBio').value =
-                "Movie enthusiast | Sci-Fi & Thriller lover | 142 films watched this year";
+            document.getElementById('editFirstName').value = currentUser.first_name || '';
+            document.getElementById('editLastName').value = currentUser.last_name || '';
+            document.getElementById('editEmail').value = currentUser.email || '';
+            document.getElementById('editAddress').value = currentUser.address || '';
 
             document.getElementById('editAvatarPreview').src =
                 document.getElementById('profileAvatar').src;
@@ -834,17 +846,44 @@
             }, 200);
         }
 
-        function saveProfile() {
-            document.querySelector("h1").textContent =
-                document.getElementById('editName').value;
+        // Saves the edited profile fields back to the server.
+        // Expects a POST /profile/update endpoint that accepts JSON
+        // { first_name, last_name, email, address } and updates the
+        // logged-in user's row in the `users` table. Add that route
+        // server-side if it doesn't exist yet.
+        async function saveProfile() {
+            const updated = {
+                first_name: document.getElementById('editFirstName').value.trim(),
+                last_name: document.getElementById('editLastName').value.trim(),
+                email: document.getElementById('editEmail').value.trim(),
+                address: document.getElementById('editAddress').value.trim()
+            };
 
-            document.querySelector("p.text-gray-400").textContent =
-                document.getElementById('editUsername').value;
+            if (!updated.first_name || !updated.last_name || !updated.email) {
+                showToast('First name, last name, and email are required.', 'error');
+                return;
+            }
 
-            document.querySelector(".text-gray-500").textContent =
-                document.getElementById('editBio').value;
+            try {
+                const res = await fetch('/profile/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updated)
+                });
 
-            closeEditModal();
+                if (!res.ok) throw new Error('Request failed');
+
+                Object.assign(currentUser, updated);
+                document.querySelector('h1.text-4xl.font-bold').textContent =
+                    `${updated.first_name} ${updated.last_name}`;
+                document.querySelector('.text-gray-400.mt-2.text-lg').textContent = updated.email;
+
+                showToast('Profile updated successfully!', 'success');
+                closeEditModal();
+            } catch (err) {
+                console.error('Failed to save profile:', err);
+                showToast('Could not save changes. Please try again.', 'error');
+            }
         }
 
         function changeAvatar() {

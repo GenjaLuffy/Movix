@@ -4,6 +4,7 @@ import bcrypt
 from flask import (
     Flask,
     render_template,
+    session,
     request,
     redirect,
     session,
@@ -236,11 +237,74 @@ def logout():
 def home_page():
     return render_template("index.html")
 
-
 @app.route("/profile")
 @login_required
 def profile_page():
-    return render_template("profile.html")
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    user_id = session["user_id"]
+
+    # User details
+    cursor.execute("SELECT * FROM users WHERE id=%s", (user_id,))
+    user = cursor.fetchone()
+
+    # Movies Watched Count
+    cursor.execute(
+        "SELECT COUNT(*) AS total FROM watched WHERE user_id=%s",
+        (user_id,)
+    )
+    watched_count = cursor.fetchone()["total"]
+
+    # Watchlist Count
+    cursor.execute(
+        "SELECT COUNT(*) AS total FROM watchlist WHERE user_id=%s",
+        (user_id,)
+    )
+    watchlist_count = cursor.fetchone()["total"]
+
+    # Favorites Count
+    cursor.execute(
+        "SELECT COUNT(*) AS total FROM favorites WHERE user_id=%s",
+        (user_id,)
+    )
+    favorites_count = cursor.fetchone()["total"]
+
+    # Reviews Count
+    cursor.execute(
+        "SELECT COUNT(*) AS total FROM reviews WHERE user_id=%s",
+        (user_id,)
+    )
+    reviews_count = cursor.fetchone()["total"]
+
+    # Fetch all reviews
+    cursor.execute("""
+        SELECT
+            review_text,
+            rating,
+            status,
+            created_at,
+            movie_id
+        FROM reviews
+        WHERE user_id=%s
+        ORDER BY created_at DESC
+    """, (user_id,))
+    reviews = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template(
+        "profile.html",
+        user=user,
+        watched_count=watched_count,
+        watchlist_count=watchlist_count,
+        favorites_count=favorites_count,
+        reviews_count=reviews_count,
+        reviews=reviews
+    )
+
+    return render_template("profile.html", user=user)
 
 
 # =====================================================
