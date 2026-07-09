@@ -1,38 +1,63 @@
 import os
 import joblib
 import pandas as pd
-
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+# ==============================
+# Create model directory
+# ==============================
 MODEL_DIR = "model"
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 print("Loading dataset...")
 
+# Load dataset
 df = pd.read_csv("dataset/movies.csv")
 
-for col in ['genres','keywords','cast','director','title']:
-    df[col] = df[col].fillna('').astype(str)
+# ==============================
+# Fill missing values
+# ==============================
+text_columns = [
+    "title",
+    "genres",
+    "keywords",
+    "cast",
+    "director",
+    "overview"
+]
 
-df['title_norm'] = df['title'].str.lower().str.strip()
+for col in text_columns:
+    df[col] = df[col].fillna("").astype(str)
 
-df['soup'] = (
-    df['genres'] + " " +
-    df['keywords'] + " " +
-    df['cast'] + " " +
-    df['director']
+# ==============================
+# Normalize movie titles
+# Used by recommender.py
+# ==============================
+df["title_norm"] = df["title"].str.lower().str.strip()
+
+# ==============================
+# Create feature soup
+# ==============================
+df["soup"] = (
+    df["genres"] + " " +
+    df["keywords"] + " " +
+    df["cast"] + " " +
+    df["director"] + " " +
+    df["overview"]
 )
 
-print("Training TF-IDF...")
+print("Training TF-IDF model...")
 
+# Create TF-IDF matrix
 vectorizer = TfidfVectorizer(stop_words="english")
 
 tfidf_matrix = vectorizer.fit_transform(df["soup"])
 
 print("Saving model...")
 
-joblib.dump(df, "model/movies_df.pkl")
-joblib.dump(vectorizer, "model/vectorizer.pkl")
-joblib.dump(tfidf_matrix, "model/tfidf_matrix.pkl")
+# Save everything
+joblib.dump(df, os.path.join(MODEL_DIR, "movies_df.pkl"))
+joblib.dump(vectorizer, os.path.join(MODEL_DIR, "vectorizer.pkl"))
+joblib.dump(tfidf_matrix, os.path.join(MODEL_DIR, "tfidf_matrix.pkl"))
 
-print("Model Saved Successfully!")
+print("Model saved successfully!")

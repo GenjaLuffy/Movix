@@ -252,8 +252,8 @@ def submit_review():
 
     # Get movie id from title
     cursor.execute(
-        "SELECT id FROM movies WHERE title=%s",
-        (title,)
+    "SELECT id FROM movies WHERE title LIKE %s",
+    (f"%{title}%",)
     )
     movie = cursor.fetchone()
 
@@ -507,33 +507,59 @@ def delete_review(review_id):
 # MOVIES API
 # =====================================================
 
-@app.route("/api/movies", methods=["GET"])
-@login_required
-def api_movies():
+@app.route("/api/movies")
+def movies():
 
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
+    data = recommender.df
 
-    cursor.execute("""
-        SELECT *
-        FROM movies
-        WHERE status='Published'
-        ORDER BY popularity DESC
-    """)
 
-    movies = cursor.fetchall()
+    movies = []
 
-    cursor.close()
-    conn.close()
 
-    # Add poster URL if missing
-    for movie in movies:
-        return jsonify({
-            "success": True,
-            "movies": movies
+    for _, movie in data.head(100).iterrows():
+
+        movies.append({
+
+            "id": int(movie["id"]),
+
+            "title": movie["title"],
+
+            "rating": float(
+                movie.get(
+                    "vote_average",
+                    0
+                )
+            ),
+
+            "genre": movie.get(
+                "genres",
+                ""
+            ),
+
+            "year": movie.get(
+                "release_date",
+                ""
+            ),
+
+            "language": movie.get(
+                "original_language",
+                ""
+            ),
+
+            "description": movie.get(
+                "overview",
+                ""
+            ),
+
+            "poster": movie.get(
+                "poster",
+                ""
+            )
+
         })
 
 
+    return jsonify(movies)
 # =====================================================
 # SINGLE MOVIE DETAILS
 # =====================================================
