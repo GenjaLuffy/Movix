@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -278,27 +279,6 @@
                 {% endif %}
 
             </div><br>
-
-            <div id="reviewFormCard" class="review-form-wrapper mt-12">
-                <div id="toastNotification" class="toast hidden"><span id="toastIcon" class="toast-icon"></span><span
-                        id="toastText" class="toast-text"></span><button id="toastAction" class="toast-action"
-                        type="button"></button></div>
-                <h3 id="reviewFormHeader" class="text-2xl font-semibold mb-4">Add a New Review</h3><br>
-                <div class="grid gap-4 md:grid-cols-2">
-                    <input id="reviewTitle" class="input" type="text" placeholder="Movie title" />
-                    <input id="reviewRating" class="input" type="number" min="1" max="10" placeholder="Rating (1-10)" />
-                </div><br>
-                <textarea id="reviewText" class="input h-32 resize-none mt-4"
-                    placeholder="Write your review here..."></textarea>
-                <div class="review-form-footer">
-                    <button onclick="submitReview()" class="review-form-button">Submit Review</button>
-                    <button id="cancelReviewBtn" type="button" onclick="cancelReviewEdit()" class="review-cancel-btn"
-                        style="display:none;">Cancel Edit</button>
-                    <p id="reviewFormNote" class="review-form-note">
-                         Your review will be submitted for admin approval.
-                    </p>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -352,558 +332,102 @@
         </div>
     </div>
 
-    <script>
-        // ==========================================
-        // CURRENT USER (rendered server-side from the /profile route)
-        // ==========================================
-        // const currentUser = {{ user | tojson | safe }};
+  <script>
+function editProfile() {
 
-        async function submitReview() {
+    document.getElementById("editFirstName").value = "{{ user.first_name }}";
+    document.getElementById("editLastName").value = "{{ user.last_name }}";
+    document.getElementById("editEmail").value = "{{ user.email }}";
+    document.getElementById("editAddress").value = "{{ user.address or '' }}";
 
-    const title = document.getElementById("reviewTitle").value;
-    const rating = document.getElementById("reviewRating").value;
-    const review = document.getElementById("reviewText").value;
+    document.getElementById("editAvatarPreview").src =
+        document.getElementById("profileAvatar").src;
 
-    const response = await fetch("/submit_review", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            title: title,
-            rating: rating,
-            review: review
-        })
-    });
-
-    const result = await response.json();
-
-    alert(result.message);
-
-    if(result.success){
-        document.getElementById("reviewTitle").value="";
-        document.getElementById("reviewRating").value="";
-        document.getElementById("reviewText").value="";
-    }
+    const modal = document.getElementById("editModal");
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
 }
 
-        // ==========================================
-        // MOVIE DATABASE WITH REAL TMDB POSTERS
-        // ==========================================
-        const movies = [
-            { id: 1, title: "The Dark Knight", rating: 9.0, genre: "Action", year: 2008, language: "English", popularity: 98, mood: "excited", description: "When the menace known as the Joker wreaks havoc on Gotham, Batman must accept one of the greatest psychological and physical tests of his ability to fight injustice.", poster: "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg" },
-            { id: 2, title: "Inception", rating: 8.8, genre: "Sci-Fi", year: 2010, language: "English", popularity: 95, mood: "thoughtful", description: "A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a C.E.O.", poster: "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg" },
-            { id: 3, title: "Interstellar", rating: 8.7, genre: "Sci-Fi", year: 2014, language: "English", popularity: 96, mood: "thoughtful", description: "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival as Earth becomes uninhabitable.", poster: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg" },
-            { id: 4, title: "The Shawshank Redemption", rating: 9.3, genre: "Drama", year: 1994, language: "English", popularity: 99, mood: "emotional", description: "Two imprisoned men bond over a number of years, finding solace and eventual redemption through acts of common decency.", poster: "https://image.tmdb.org/t/p/w500/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg" },
-            { id: 5, title: "Pulp Fiction", rating: 8.9, genre: "Crime", year: 1994, language: "English", popularity: 93, mood: "excited", description: "The lives of two mob hitmen, a boxer, a gangster and his wife intertwine in four tales of violence and redemption.", poster: "https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg" },
-            { id: 6, title: "The Matrix", rating: 8.7, genre: "Sci-Fi", year: 1999, language: "English", popularity: 94, mood: "excited", description: "When a beautiful stranger leads computer hacker Neo to a forbidding underworld, he discovers the shocking truth.", poster: "https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg" },
-            { id: 7, title: "Forrest Gump", rating: 8.8, genre: "Drama", year: 1994, language: "English", popularity: 97, mood: "happy", description: "The presidencies of Kennedy and Johnson, the Vietnam War, the Watergate scandal unfold from the perspective of an Alabama man with an IQ of 75.", poster: "https://image.tmdb.org/t/p/w500/arw2vcBveWOVZr6pxd9XTd1TdQa.jpg" },
-            { id: 8, title: "Fight Club", rating: 8.8, genre: "Drama", year: 1999, language: "English", popularity: 91, mood: "excited", description: "An insomniac office worker and a devil-may-care soap maker form an underground fight club that evolves into much more.", poster: "https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg" },
-            { id: 9, title: "The Godfather", rating: 9.2, genre: "Crime", year: 1972, language: "English", popularity: 97, mood: "thoughtful", description: "The aging patriarch of an organized crime dynasty transfers control of his clandestine empire to his reluctant youngest son.", poster: "https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg" },
-            { id: 10, title: "Parasite", rating: 8.5, genre: "Thriller", year: 2019, language: "Korean", popularity: 92, mood: "scared", description: "Greed and class discrimination threaten the newly formed symbiotic relationship between the wealthy Park family and the destitute Kim clan.", poster: "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg" },
-            { id: 11, title: "Spirited Away", rating: 8.6, genre: "Animation", year: 2001, language: "Japanese", popularity: 90, mood: "happy", description: "During her family's move to the suburbs, a sullen 10-year-old girl wanders into a world ruled by gods, witches and spirits.", poster: "https://image.tmdb.org/t/p/w500/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg" },
-            { id: 12, title: "The Silence of the Lambs", rating: 8.6, genre: "Thriller", year: 1991, language: "English", popularity: 87, mood: "scared", description: "A young F.B.I. cadet must receive the help of an incarcerated and manipulative cannibal killer to help catch another serial killer.", poster: "https://image.tmdb.org/t/p/w500/uS9m8OBk1A8eM9I042bx8XXpqAq.jpg" },
-            { id: 13, title: "Gladiator", rating: 8.5, genre: "Action", year: 2000, language: "English", popularity: 91, mood: "excited", description: "A former Roman General sets out to exact vengeance against the corrupt emperor who murdered his family and sent him into slavery.", poster: "https://image.tmdb.org/t/p/w500/ty8TGRuvJLPUmAR1H1nRIsgwvim.jpg" },
-            { id: 14, title: "The Departed", rating: 8.5, genre: "Crime", year: 2006, language: "English", popularity: 88, mood: "scared", description: "An undercover cop and a mole in the police attempt to identify each other while infiltrating an Irish gang in South Boston.", poster: "https://image.tmdb.org/t/p/w500/nT97ifVT2J1yMQmeq20Qblg61T.jpg" },
-            { id: 15, title: "Whiplash", rating: 8.5, genre: "Drama", year: 2014, language: "English", popularity: 86, mood: "excited", description: "A promising young drummer enrolls at a cut-throat music conservatory where his dreams of greatness are mentored by an intense instructor.", poster: "https://image.tmdb.org/t/p/w500/7fn624j5lj3xTme2SgiLCeuedmO.jpg" },
-            { id: 16, title: "Get Out", rating: 7.7, genre: "Horror", year: 2017, language: "English", popularity: 89, mood: "scared", description: "A young African-American visits his white girlfriend's parents for the weekend, where his simmering uneasiness eventually reaches a boiling point.", poster: "https://image.tmdb.org/t/p/w500/tFXcEccSQMf3lfhfXKSU9iRBpa3.jpg" },
-            { id: 17, title: "Joker", rating: 8.4, genre: "Drama", year: 2019, language: "English", popularity: 93, mood: "emotional", description: "During the 1980s, a failed stand-up comedian is driven insane and turns to a life of crime and chaos in Gotham City.", poster: "https://image.tmdb.org/t/p/w500/udDclJoHjfjb8Ekgsd4FDteOkCU.jpg" },
-            { id: 18, title: "Dune", rating: 8.0, genre: "Sci-Fi", year: 2021, language: "English", popularity: 91, mood: "thoughtful", description: "A noble family becomes embroiled in a war for control over the galaxy's most valuable asset while its heir becomes troubled by visions of a dark future.", poster: "https://image.tmdb.org/t/p/w500/d5NXSklXo0qyIYkgV94XAgMIckC.jpg" },
-            { id: 19, title: "Everything Everywhere All at Once", rating: 8.0, genre: "Sci-Fi", year: 2022, language: "English", popularity: 94, mood: "happy", description: "An aging Chinese immigrant is swept up in an insane adventure, where she alone can save the world by exploring other universes.", poster: "https://image.tmdb.org/t/p/w500/w3LxiVYdWWRvEVdn5RYq6jIqkb1.jpg" },
-            { id: 20, title: "La La Land", rating: 8.0, genre: "Romance", year: 2016, language: "English", popularity: 88, mood: "emotional", description: "While navigating their careers in Los Angeles, a pianist and an actress fall in love while attempting to reconcile their aspirations.", poster: "https://image.tmdb.org/t/p/w500/uDO8zWDhfWwoFdKS4fzkUJt0Rf0.jpg" },
-            { id: 21, title: "Mad Max: Fury Road", rating: 8.1, genre: "Action", year: 2015, language: "English", popularity: 92, mood: "excited", description: "In a post-apocalyptic wasteland, a woman rebels against a tyrannical ruler in search for her homeland.", poster: "https://image.tmdb.org/t/p/w500/8tZYtuWezp8JbcsvHYO0O46tFbo.jpg" },
-            { id: 22, title: "The Grand Budapest Hotel", rating: 8.1, genre: "Comedy", year: 2014, language: "English", popularity: 85, mood: "happy", description: "A writer encounters the owner of an aging high-class hotel, who tells him of his early years serving as a lobby boy.", poster: "https://image.tmdb.org/t/p/w500/nX5XotM9yprCKarRH4fzOq1VM1J.jpg" },
-            { id: 23, title: "Blade Runner 2049", rating: 8.0, genre: "Sci-Fi", year: 2017, language: "English", popularity: 87, mood: "thoughtful", description: "Young Blade Runner K's discovery of a long-buried secret leads him to track down former Blade Runner Rick Deckard.", poster: "https://image.tmdb.org/t/p/w500/gajva2L0rPYkEWjzgFlBXCAVBE5.jpg" },
-            { id: 24, title: "Coco", rating: 8.4, genre: "Animation", year: 2017, language: "English", popularity: 93, mood: "happy", description: "Aspiring musician Miguel, confronted with his family's ancestral ban on music, enters the Land of the Dead.", poster: "https://image.tmdb.org/t/p/w500/gGEsBPAijhVUFoiNpgZXqRVWJt2.jpg" },
-            { id: 25, title: "Arrival", rating: 7.9, genre: "Sci-Fi", year: 2016, language: "English", popularity: 85, mood: "thoughtful", description: "A linguist works with the military to communicate with alien lifeforms after twelve mysterious spacecraft appear around the world.", poster: "https://image.tmdb.org/t/p/w500/x2FJsf1ElAgr63Y3PNPtJrcmpoe.jpg" },
-            { id: 26, title: "Avengers: Endgame", rating: 8.4, genre: "Action", year: 2019, language: "English", popularity: 97, mood: "excited", description: "After the devastating events of Infinity War, the universe is in ruins. The Avengers assemble once more to reverse Thanos' actions.", poster: "https://image.tmdb.org/t/p/w500/or06FN3Dka5tukK1e9sl16pB3iy.jpg" },
-            { id: 27, title: "Oppenheimer", rating: 8.5, genre: "Drama", year: 2023, language: "English", popularity: 96, mood: "thoughtful", description: "The story of American scientist J. Robert Oppenheimer and his role in the development of the atomic bomb.", poster: "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg" },
-            { id: 28, title: "The Batman", rating: 7.8, genre: "Action", year: 2022, language: "English", popularity: 92, mood: "excited", description: "When a sadistic serial killer begins murdering key political figures in Gotham, Batman is forced to investigate.", poster: "https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg" },
-            { id: 29, title: "Spider-Man: Into the Spider-Verse", rating: 8.4, genre: "Animation", year: 2018, language: "English", popularity: 94, mood: "happy", description: "Teen Miles Morales becomes the Spider-Man of his reality, and crosses paths with counterparts from other dimensions.", poster: "https://image.tmdb.org/t/p/w500/iiZZdoQBEYBv6id8su7ImL0oCbD.jpg" },
-            { id: 30, title: "Dune: Part Two", rating: 8.6, genre: "Sci-Fi", year: 2024, language: "English", popularity: 95, mood: "excited", description: "Paul Atreides unites with the Fremen while on a warpath of revenge against the conspirators who destroyed his family.", poster: "https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg" },
-            { id: 31, title: "Inside Out 2", rating: 7.6, genre: "Animation", year: 2024, language: "English", popularity: 93, mood: "happy", description: "A sequel that features Riley entering her teenage years and encountering brand-new emotions.", poster: "https://image.tmdb.org/t/p/w500/vpnVM9B6NMmQpWeZvzLvDESb2QY.jpg" },
-            { id: 32, title: "The Prestige", rating: 8.5, genre: "Thriller", year: 2006, language: "English", popularity: 90, mood: "scared", description: "After a tragic accident, two stage magicians engage in a battle to create the ultimate illusion.", poster: "https://image.tmdb.org/t/p/w500/tRNlZbgNCNOpLpbPEz5L8G8A0JN.jpg" },
-            { id: 33, title: "Goodfellas", rating: 8.7, genre: "Crime", year: 1990, language: "English", popularity: 89, mood: "excited", description: "The story of Henry Hill and his life in the mob, covering his relationship with his wife Karen and his mob partners.", poster: "https://image.tmdb.org/t/p/w500/aKuFiU82s5ISJpGZp7YkIr3kCUd.jpg" },
-            { id: 34, title: "Se7en", rating: 8.6, genre: "Thriller", year: 1995, language: "English", popularity: 91, mood: "scared", description: "Two detectives hunt a serial killer who uses the seven deadly sins as his motives.", poster: "https://image.tmdb.org/t/p/w500/6yoghtyTpznpBik8BEmJ6Jah5gZ.jpg" },
-            { id: 35, title: "The Lion King", rating: 8.5, genre: "Animation", year: 1994, language: "English", popularity: 94, mood: "emotional", description: "Lion prince Simba and his father are targeted by his bitter uncle, who wants to ascend the throne himself.", poster: "https://image.tmdb.org/t/p/w500/sKCr78MXSLixwmZ8DyJLrpMsd15.jpg" },
-            { id: 36, title: "The Green Mile", rating: 8.6, genre: "Drama", year: 1999, language: "English", popularity: 87, mood: "emotional", description: "The lives of guards on Death Row are affected by one of their charges: a black man accused of child murder and rape.", poster: "https://image.tmdb.org/t/p/w500/velWPhVMQeQKcxggNEU8YmIo52R.jpg" },
-            { id: 37, title: "Saving Private Ryan", rating: 8.6, genre: "Action", year: 1998, language: "English", popularity: 90, mood: "emotional", description: "Following the Normandy Landings, a group of U.S. soldiers go behind enemy lines to retrieve a paratrooper.", poster: "https://image.tmdb.org/t/p/w500/uqx37cS8cpHg8U35f9U5IBlrCV3.jpg" },
-            { id: 38, title: "WALL·E", rating: 8.4, genre: "Animation", year: 2008, language: "English", popularity: 92, mood: "happy", description: "In the distant future, a small waste-collecting robot embarks on a space journey that will decide the fate of humankind.", poster: "https://image.tmdb.org/t/p/w500/hbhFnRzzg6ZDmm8YAmxBnQpQIPh.jpg" },
-            { id: 39, title: "American History X", rating: 8.5, genre: "Drama", year: 1998, language: "English", popularity: 85, mood: "emotional", description: "A former neo-nazi skinhead tries to prevent his younger brother from going down the same wrong path.", poster: "https://image.tmdb.org/t/p/w500/fXepRAYOx1qC3wju7XdDGx60775.jpg" },
-            { id: 40, title: "Spider-Man: No Way Home", rating: 8.2, genre: "Action", year: 2021, language: "English", popularity: 93, mood: "excited", description: "With Spider-Man's identity revealed, Peter asks Doctor Strange for help. Dangerous foes from other worlds appear.", poster: "https://image.tmdb.org/t/p/w500/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg" },
-            { id: 41, title: "The Wolf of Wall Street", rating: 8.2, genre: "Comedy", year: 2013, language: "English", popularity: 89, mood: "excited", description: "Based on the true story of Jordan Belfort, from his rise to a wealthy stock-broker to his fall involving crime.", poster: "https://image.tmdb.org/t/p/w500/34m2tygAYBGqA9MXKhRDtzYd4MR.jpg" },
-            { id: 42, title: "Toy Story", rating: 8.3, genre: "Animation", year: 1995, language: "English", popularity: 92, mood: "happy", description: "A cowboy doll is profoundly threatened and jealous when a new spaceman figure supplants him as top toy.", poster: "https://image.tmdb.org/t/p/w500/uXDfjJbdP4ijW5hWSBrPrlKpxab.jpg" },
-            { id: 43, title: "Up", rating: 8.3, genre: "Animation", year: 2009, language: "English", popularity: 91, mood: "emotional", description: "78-year-old Carl Fredricksen travels to Paradise Falls in his house equipped with balloons, inadvertently taking a young stowaway.", poster: "https://image.tmdb.org/t/p/w500/vpbaStTMt8qqXaEgnOR2EE4DNJk.jpg" },
-            { id: 44, title: "Finding Nemo", rating: 8.2, genre: "Animation", year: 2003, language: "English", popularity: 90, mood: "happy", description: "After his son is captured in the Great Barrier Reef and taken to Sydney, a timid clownfish sets out on a journey to bring him home.", poster: "https://image.tmdb.org/t/p/w500/eHuGQ10FUzJ1cOYXRnGJb3f4r4s.jpg" },
-            { id: 45, title: "Shutter Island", rating: 8.2, genre: "Thriller", year: 2010, language: "English", popularity: 88, mood: "scared", description: "In 1954, a U.S. Marshal investigates the disappearance of a murderer who escaped from a hospital for the criminally insane.", poster: "https://image.tmdb.org/t/p/w500/52d7CAj6MBZfSsQlVj4YX1kNn4r.jpg" },
-            { id: 46, title: "The Truman Show", rating: 8.2, genre: "Comedy", year: 1998, language: "English", popularity: 90, mood: "thoughtful", description: "An insurance salesman discovers his whole life is actually a reality TV show.", poster: "https://image.tmdb.org/t/p/w500/vuza0WqY239yBXOadKlGwJsZJFE.jpg" },
-            { id: 47, title: "A Beautiful Mind", rating: 8.2, genre: "Drama", year: 2001, language: "English", popularity: 86, mood: "emotional", description: "After John Nash, a brilliant but asocial mathematician, accepts secret work in cryptography, his life takes a turn for the nightmarish.", poster: "https://image.tmdb.org/t/p/w500/zwzWCmH72OSC9NA0ipoqw5Zjya8.jpg" },
-            { id: 48, title: "Reservoir Dogs", rating: 8.3, genre: "Crime", year: 1992, language: "English", popularity: 84, mood: "excited", description: "When a simple jewelry heist goes horribly wrong, the surviving criminals begin to suspect that one of them is a police informant.", poster: "https://image.tmdb.org/t/p/w500/xi8Iu6qyTfyZVDVy60raIOXJxDI.jpg" },
-            { id: 49, title: "Back to the Future", rating: 8.5, genre: "Sci-Fi", year: 1985, language: "English", popularity: 93, mood: "happy", description: "Marty McFly, a 17-year-old high school student, is accidentally sent thirty years into the past in a time-traveling DeLorean.", poster: "https://image.tmdb.org/t/p/w500/fNOH9f1aA7XRTzl1sAOx9iF553Q.jpg" },
-            { id: 50, title: "The Intouchables", rating: 8.5, genre: "Comedy", year: 2011, language: "French", popularity: 90, mood: "happy", description: "After he becomes a quadriplegic from a paragliding accident, an aristocrat hires a young man from the projects to be his caregiver.", poster: "https://image.tmdb.org/t/p/w500/323BP0itpxTsO0skTwdnVmf7YC9.jpg" }
-        ];
-
-
-        let watchlist = JSON.parse(localStorage.getItem('movix_watchlist') || '[]');
-        let favorites = JSON.parse(localStorage.getItem('movix_favorites') || '[]');
-        let watched = JSON.parse(localStorage.getItem('movix_watched') || '[]');
-        let currentMovieId = null;
-        let currentMovieSource = null;
-        let currentReviewMovieId = null;
-        let editingReviewIndex = null;
-        let lastDeletedReview = null;
-
-        let userReviews = [
-            { title: "Inception", rating: 9, date: "June 10, 2026", text: "Beautifully layered and intense — a must-watch every time." },
-            { title: "Parasite", rating: 8, date: "May 22, 2026", text: "Sharp social commentary with gripping pacing and unforgettable scenes." },
-            { title: "The Dark Knight", rating: 10, date: "April 18, 2026", text: "Perfect combination of action, drama and psychological tension." }
-        ];
-
-        function getSavedReviews() {
-            const data = localStorage.getItem('movix_reviews');
-            if (!data) return null;
-            try {
-                const reviews = JSON.parse(data);
-                return Array.isArray(reviews) ? reviews : null;
-            } catch (error) {
-                console.warn('Failed to parse saved reviews:', error);
-                localStorage.removeItem('movix_reviews');
-                return null;
-            }
-        }
-
-        const savedReviews = getSavedReviews();
-        if (savedReviews && savedReviews.length) {
-            userReviews = savedReviews;
-        }
-
-        function saveReviews() {
-            localStorage.setItem('movix_reviews', JSON.stringify(userReviews));
-        }
-
-        function saveState() {
-            localStorage.setItem('movix_watchlist', JSON.stringify(watchlist));
-            localStorage.setItem('movix_favorites', JSON.stringify(favorites));
-            localStorage.setItem('movix_watched', JSON.stringify(watched));
-        }
-
-        function getMovie(id) {
-            return movies.find(m => m.id === id);
-        }
-
-        function createMiniCard(movie, source = null) {
-            const div = document.createElement('div');
-            div.className = "movie-card";
-            div.innerHTML = `
-        <div class="aspect-[2/3] relative overflow-hidden">
-            <img src="${movie.poster}" class="w-full h-full object-cover" />
-            <div class="absolute top-3 right-3 bg-black/80 text-xs px-2 py-1 rounded-xl">★ ${movie.rating}</div>
-        </div>
-        <div class="p-4">
-            <p class="font-semibold">${movie.title}</p>
-            <p class="text-xs text-gray-400">${movie.year} • ${movie.genre}</p>
-        </div>
-    `;
-            div.onclick = () => openModal(movie.id, source);
-            return div;
-        }
-
-        /* ================= RENDER FUNCTIONS ================= */
-
-        function markWatched(id) {
-            if (!id || watched.includes(id)) return;
-            watched.push(id);
-            saveState();
-            renderWatched();
-        }
-
-        function renderWatched() {
-            const watchedCount = watched.length;
-            document.getElementById('statWatched').textContent = watchedCount;
-        }
-
-        function renderTasteMatch() {
-            const genreCounts = {};
-            movies.filter(m => favorites.includes(m.id)).forEach(movie => {
-                genreCounts[movie.genre] = (genreCounts[movie.genre] || 0) + 1;
-            });
-            const genreScore = Object.keys(genreCounts).length * 12;
-            const favoriteScore = favorites.length * 2;
-            const match = Math.min(100, 40 + genreScore + favoriteScore);
-            document.getElementById('statTasteMatch').textContent = `${match}%`;
-        }
-
-
-        function deleteReview(index) {
-            const review = userReviews[index];
-            if (!review) return;
-            if (!confirm('Delete this review?')) return;
-
-            userReviews.splice(index, 1);
-            saveReviews();
-            renderReviewSection();
-
-            if (editingReviewIndex === index) {
-                cancelReviewEdit();
-            } else if (editingReviewIndex !== null && editingReviewIndex > index) {
-                editingReviewIndex -= 1;
-            }
-
-            lastDeletedReview = { review, index };
-            showToast('Review deleted.', 'success', 'Undo', undoDeleteReview);
-        }
-
-        function undoDeleteReview() {
-            if (!lastDeletedReview) return;
-            const { review, index } = lastDeletedReview;
-            userReviews.splice(index, 0, review);
-            saveReviews();
-            renderReviewSection();
-            lastDeletedReview = null;
-            showToast('Review restored.', 'success');
-        }
-
-        function showToast(message, type = 'success', actionText = null, actionHandler = null) {
-            const toast = document.getElementById('toastNotification');
-            const toastIcon = document.getElementById('toastIcon');
-            const toastText = document.getElementById('toastText');
-            const toastAction = document.getElementById('toastAction');
-            toastIcon.textContent = type === 'success' ? '✔' : '⚠';
-            toastText.textContent = message;
-            toast.classList.remove('success', 'error');
-            toast.classList.add(type);
-            if (actionText && typeof actionHandler === 'function') {
-                toastAction.textContent = actionText;
-                toastAction.onclick = () => {
-                    actionHandler();
-                    toastAction.onclick = null;
-                };
-                toastAction.style.display = 'inline-flex';
-            } else {
-                toastAction.style.display = 'none';
-            }
-            toast.classList.remove('hidden');
-            toast.classList.add('show');
-            clearTimeout(window.reviewToastTimeout);
-            window.reviewToastTimeout = setTimeout(() => {
-                toast.classList.remove('show');
-                toast.classList.add('hidden');
-                toastAction.onclick = null;
-            }, 3000);
-        }
-
-        function openReviewForm(movieId = null) {
-            editingReviewIndex = null;
-            currentReviewMovieId = movieId;
-            const titleInput = document.getElementById('reviewTitle');
-            const ratingInput = document.getElementById('reviewRating');
-            const textInput = document.getElementById('reviewText');
-            const note = document.getElementById('reviewFormNote');
-            const header = document.getElementById('reviewFormHeader');
-            const formCard = document.getElementById('reviewFormCard');
-
-            if (movieId) {
-                const movie = getMovie(movieId);
-                if (movie) {
-                    titleInput.value = movie.title;
-                    header.textContent = `Review ${movie.title}`;
-                    note.textContent = `Reviewing: ${movie.title} — your comments will appear in My Reviews.`;
-                }
-            } else {
-                header.textContent = 'Add a New Review';
-                titleInput.value = '';
-                note.textContent = 'Your review will be saved locally in the browser.';
-            }
-
-            ratingInput.value = '';
-            textInput.value = '';
-            toggleCancelButton(false);
-
-            formCard.scrollIntoView({ behavior: 'smooth' });
-            closeModal();
-        }
-
-        function editReview(index) {
-            const review = userReviews[index];
-            if (!review) return;
-
-            editingReviewIndex = index;
-            currentReviewMovieId = review.movieId || null;
-            const titleInput = document.getElementById('reviewTitle');
-            const ratingInput = document.getElementById('reviewRating');
-            const textInput = document.getElementById('reviewText');
-            const note = document.getElementById('reviewFormNote');
-            const header = document.getElementById('reviewFormHeader');
-            const formCard = document.getElementById('reviewFormCard');
-
-            titleInput.value = review.title;
-            ratingInput.value = review.rating;
-            textInput.value = review.text;
-            header.textContent = review.movieId ? `Edit Review — ${getMovie(review.movieId)?.title || review.title}` : 'Edit Review';
-            note.textContent = 'Edit your review and save the updated version.';
-            toggleCancelButton(true);
-
-            formCard.scrollIntoView({ behavior: 'smooth' });
-            closeModal();
-        }
-
-        function cancelReviewEdit() {
-            editingReviewIndex = null;
-            currentReviewMovieId = null;
-            document.getElementById('reviewFormHeader').textContent = 'Add a New Review';
-            document.getElementById('reviewTitle').value = '';
-            document.getElementById('reviewRating').value = '';
-            document.getElementById('reviewText').value = '';
-            document.getElementById('reviewFormNote').textContent = 'Your review will be saved locally in the browser.';
-            toggleCancelButton(false);
-        }
-
-        function toggleCancelButton(show) {
-            const btn = document.getElementById('cancelReviewBtn');
-            if (btn) {
-                btn.style.display = show ? 'inline-flex' : 'none';
-            }
-        }
-
-        function renderFavoriteGenres() {
-            const genres = ["Sci-Fi", "Thriller", "Action", "Drama", "Animation", "Crime"];
-            const container = document.getElementById('genreChips');
-            container.innerHTML = genres.map(g => `<div class="genre-chip">${g}</div>`).join('');
-        }
-
-        /* ================= MODAL LOGIC ================= */
-
-        function updateModalButtons(movieId, source = null) {
-            const wlBtn = document.getElementById('modalWlBtn');
-            const favBtn = document.getElementById('modalFavBtn');
-            const reviewBtn = document.getElementById('modalReviewBtn');
-
-            if (watchlist.includes(movieId)) {
-                wlBtn.textContent = "Remove Watchlist";
-            } else {
-                wlBtn.textContent = "Add to Watchlist";
-            }
-
-            if (favorites.includes(movieId)) {
-                favBtn.textContent = "Remove Favorite";
-            } else {
-                favBtn.textContent = "Add to Favorite";
-            }
-
-            if (movieId) {
-                reviewBtn.textContent = "✍️ Review This Movie";
-            } else {
-                reviewBtn.textContent = "✍️ Review Movie";
-            }
-        }
-        // ==================== PREMIUM MODAL ====================
-        function openModal(id, source = null) {
-            const movie = getMovie(id);
-            if (!movie) return;
-            currentMovieId = id;
-            currentMovieSource = source;
-
-            document.getElementById('modalPoster').style.backgroundImage = `url('${movie.poster}')`;
-
-            document.getElementById('modalTags').innerHTML = `
-                <div class="modal-tag">${movie.genre}</div>
-                <div class="modal-tag">${movie.year}</div>
-                <div class="modal-tag">${movie.language}</div>
-            `;
-
-            document.getElementById('modalTitle').textContent = movie.title;
-
-            document.getElementById('modalMeta').innerHTML = `
-                <span class="flex items-center gap-1 text-yellow-400">★ ${movie.rating}</span>
-                <span>${movie.year}</span>
-                <span>${movie.language}</span>
-                <span>${movie.genre}</span>
-            `;
-
-            document.getElementById('modalDesc').textContent = movie.description;
-
-            updateModalButtons(id, source);
-
-            // Similar Movies
-            const similar = movies.filter(m => m.id !== id && (m.genre === movie.genre || m.mood === movie.mood)).slice(0, 6);
-            const container = document.getElementById('modalSimilar');
-            container.innerHTML = '';
-            similar.forEach(m => {
-                const card = document.createElement('div');
-                card.className = "similar-card";
-                card.innerHTML = `
-                    <img src="${m.poster}" class="w-full aspect-[2/3] object-cover rounded-xl" alt="${m.title}">
-                    <p class="text-sm font-medium mt-3 line-clamp-2">${m.title}</p>
-                    <p class="text-xs text-yellow-400 mt-1">★ ${m.rating}</p>
-                `;
-                card.onclick = () => { closeModal(); setTimeout(() => openModal(m.id), 300); };
-                container.appendChild(card);
-            });
-
-            document.getElementById('movieModal').classList.remove('hidden');
-            document.getElementById('movieModal').classList.add('flex');
-        }
-
-        function closeModal() {
-            const modal = document.getElementById('movieModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-
-        function toggleWatchlistModal() {
-            if (!currentMovieId) return;
-
-            if (watchlist.includes(currentMovieId)) {
-                watchlist = watchlist.filter(id => id !== currentMovieId);
-            } else {
-                watchlist.push(currentMovieId);
-            }
-
-            saveState();
-            renderWatchlist();
-            updateModalButtons(currentMovieId, currentMovieSource);
-        }
-
-        function toggleFavModal() {
-            if (!currentMovieId) return;
-
-            if (favorites.includes(currentMovieId)) {
-                favorites = favorites.filter(id => id !== currentMovieId);
-            } else {
-                favorites.push(currentMovieId);
-            }
-
-            saveState();
-            renderFavorites();
-            updateModalButtons(currentMovieId, currentMovieSource);
-        }
-
-        function watchTrailer() {
-            if (currentMovieId) {
-                markWatched(currentMovieId);
-            }
-            alert("Trailer playing...");
-        }
-
-        function triggerFileInput() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-
-            input.onchange = e => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = ev => {
-                    document.getElementById('profileAvatar').src = ev.target.result;
-                };
-                reader.readAsDataURL(file);
-            };
-
-            input.click();
-        }
-
-        function editProfile() {
-            const modal = document.getElementById('editModal');
-
-            document.getElementById('editFirstName').value = currentUser.first_name || '';
-            document.getElementById('editLastName').value = currentUser.last_name || '';
-            document.getElementById('editEmail').value = currentUser.email || '';
-            document.getElementById('editAddress').value = currentUser.address || '';
-
-            document.getElementById('editAvatarPreview').src =
-                document.getElementById('profileAvatar').src;
-
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        function closeEditModal() {
-            const modalBox = document.querySelector('.edit-modal');
-            modalBox.classList.add('modal-out');
-
-            setTimeout(() => {
-                const modal = document.getElementById('editModal');
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-                modalBox.classList.remove('modal-out');
-            }, 200);
-        }
-
-        // Saves the edited profile fields back to the server.
-        // Expects a POST /profile/update endpoint that accepts JSON
-        // { first_name, last_name, email, address } and updates the
-        // logged-in user's row in the `users` table. Add that route
-        // server-side if it doesn't exist yet.
-        async function saveProfile() {
-            const updated = {
-                first_name: document.getElementById('editFirstName').value.trim(),
-                last_name: document.getElementById('editLastName').value.trim(),
-                email: document.getElementById('editEmail').value.trim(),
-                address: document.getElementById('editAddress').value.trim()
-            };
-
-            if (!updated.first_name || !updated.last_name || !updated.email) {
-                showToast('First name, last name, and email are required.', 'error');
-                return;
-            }
-
-            try {
-                const res = await fetch('/profile/update', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updated)
-                });
-
-                if (!res.ok) throw new Error('Request failed');
-
-                Object.assign(currentUser, updated);
-                document.querySelector('h1.text-4xl.font-bold').textContent =
-                    `${updated.first_name} ${updated.last_name}`;
-                document.querySelector('.text-gray-400.mt-2.text-lg').textContent = updated.email;
-
-                showToast('Profile updated successfully!', 'success');
-                closeEditModal();
-            } catch (err) {
-                console.error('Failed to save profile:', err);
-                showToast('Could not save changes. Please try again.', 'error');
-            }
-        }
-
-        function changeAvatar() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-
-            input.onchange = e => {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-
-                reader.onload = ev => {
-                    document.getElementById('editAvatarPreview').src = ev.target.result;
-                    document.getElementById('profileAvatar').src = ev.target.result;
-                };
-
-                reader.readAsDataURL(file);
-            };
-
-            input.click();
-        }
-
-        // Init
-        document.addEventListener('DOMContentLoaded', () => {
-            renderFavoriteGenres();
-            renderWatchlist();
-            renderFavorites();
-            renderWatched();
-            renderReviewSection();
+function closeEditModal() {
+    const modal = document.getElementById("editModal");
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+}
+
+async function saveProfile() {
+
+    const data = {
+        first_name: document.getElementById("editFirstName").value.trim(),
+        last_name: document.getElementById("editLastName").value.trim(),
+        email: document.getElementById("editEmail").value.trim(),
+        address: document.getElementById("editAddress").value.trim()
+    };
+
+    if (!data.first_name || !data.last_name || !data.email) {
+        alert("Please fill all required fields.");
+        return;
+    }
+
+    try {
+
+        const response = await fetch("/profile/update", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
         });
 
-        document.addEventListener('keydown', e => {
-            if (e.key === "Escape") closeModal();
-        });
-    </script>
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+
+            document.querySelector("h1").textContent =
+                data.first_name + " " + data.last_name;
+
+            document.querySelector(".text-gray-400.mt-2.text-lg").textContent =
+                data.email;
+
+            closeEditModal();
+            location.reload();
+
+        } else {
+            alert(result.message || "Profile update failed.");
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("Server error.");
+    }
+}
+function changeAvatar() {
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+
+    input.onchange = function (e) {
+
+        const file = e.target.files[0];
+
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = function (event) {
+
+            document.getElementById("profileAvatar").src = event.target.result;
+            document.getElementById("editAvatarPreview").src = event.target.result;
+
+        };
+
+        reader.readAsDataURL(file);
+
+    };
+
+    input.click();
+}
+</script>
 </body>
 
 </html>

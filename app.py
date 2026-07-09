@@ -286,58 +286,197 @@ def submit_review():
         "message": "Review submitted successfully."
     })
 
+
+# =====================================================
+# UPDATE PROFILE
+# =====================================================
+
+
+
+
+@app.route("/profile/update", methods=["POST"])
+@login_required
+def update_profile():
+
+    data = request.get_json()
+
+    first_name = data.get("first_name", "").strip()
+    last_name = data.get("last_name", "").strip()
+    email = data.get("email", "").strip().lower()
+    address = data.get("address", "").strip()
+
+    if not first_name or not last_name or not email:
+        return jsonify({
+            "success": False,
+            "message": "First name, last name and email are required."
+        }), 400
+
+    conn = get_connection()
+
+    if conn is None:
+        return jsonify({
+            "success": False,
+            "message": "Database connection failed."
+        }), 500
+
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+
+        cursor.execute("""
+            SELECT id
+            FROM users
+            WHERE email=%s
+            AND id!=%s
+        """, (
+            email,
+            session["user_id"]
+        ))
+
+        existing = cursor.fetchone()
+
+        if existing:
+            return jsonify({
+                "success": False,
+                "message": "Email already exists."
+            }), 400
+
+        cursor.execute("""
+            UPDATE users
+            SET
+                first_name=%s,
+                last_name=%s,
+                email=%s,
+                address=%s
+            WHERE id=%s
+        """, (
+            first_name,
+            last_name,
+            email,
+            address,
+            session["user_id"]
+        ))
+
+        conn.commit()
+
+        session["first_name"] = first_name
+
+        return jsonify({
+            "success": True,
+            "message": "Profile updated successfully."
+        })
+
+    except Exception as e:
+
+        conn.rollback()
+
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
+
+    finally:
+        cursor.close()
+        conn.close()
 @app.route("/profile")
 @login_required
 def profile_page():
+
     conn = get_connection()
+
+    if conn is None:
+        return "Database connection failed.", 500
+
     cursor = conn.cursor(dictionary=True)
 
     user_id = session["user_id"]
 
-    # User details
-    cursor.execute("SELECT * FROM users WHERE id=%s", (user_id,))
+    # -------------------------
+    # USER
+    # -------------------------
+    cursor.execute("""
+        SELECT *
+        FROM users
+        WHERE id = %s
+    """, (user_id,))
     user = cursor.fetchone()
 
-    # Movies Watched Count
-    cursor.execute(
-        "SELECT COUNT(*) AS total FROM watched WHERE user_id=%s",
-        (user_id,)
-    )
+    # -------------------------
+    # COUNTS
+    # -------------------------
+    cursor.execute("SELECT COUNT(*) AS total FROM watched WHERE user_id=%s", (user_id,))
     watched_count = cursor.fetchone()["total"]
 
-    # Watchlist Count
-    cursor.execute(
-        "SELECT COUNT(*) AS total FROM watchlist WHERE user_id=%s",
-        (user_id,)
-    )
+    cursor.execute("SELECT COUNT(*) AS total FROM watchlist WHERE user_id=%s", (user_id,))
     watchlist_count = cursor.fetchone()["total"]
 
-    # Favorites Count
-    cursor.execute(
-        "SELECT COUNT(*) AS total FROM favorites WHERE user_id=%s",
-        (user_id,)
-    )
+    cursor.execute("SELECT COUNT(*) AS total FROM favorites WHERE user_id=%s", (user_id,))
     favorites_count = cursor.fetchone()["total"]
 
-    # Reviews Count
-    cursor.execute(
-        "SELECT COUNT(*) AS total FROM reviews WHERE user_id=%s",
-        (user_id,)
-    )
+    cursor.execute("SELECT COUNT(*) AS total FROM reviews WHERE user_id=%s", (user_id,))
     reviews_count = cursor.fetchone()["total"]
 
-    # Fetch all reviews
+    # -------------------------
+    # WATCHLIST
+    # -------------------------
     cursor.execute("""
         SELECT
-            review_text,
-            rating,
-            status,
-            created_at,
-            movie_id
-        FROM reviews
-        WHERE user_id=%s
-        ORDER BY created_at DESC
+            m.id,
+            m.title,
+            m.poster,
+            m.year,
+            m.genre,
+            m.rating
+        FROM watchlist w
+        INNER JOIN movies m
+            ON w.movie_id = m.id
+        WHERE w.user_id = %s
+        ORDER BY m.title ASC
     """, (user_id,))
+
+    watchlist = cursor.fetchall()
+
+    # -------------------------
+    # FAVORITES
+    # -------------------------
+    cursor.execute("""
+        SELECT
+            m.id,
+            m.title,
+            m.poster,
+            m.year,
+            m.genre,
+            m.rating
+        FROM favorites f
+        INNER JOIN movies m
+            ON f.movie_id = m.id
+        WHERE f.user_id = %s
+        ORDER BY m.title ASC
+    """, (user_id,))
+
+    favorites = cursor.fetchall()
+
+    # -------------------------
+    # REVIEWS
+    # -------------------------
+    cursor.execute("""
+        SELECT
+            r.id,
+            r.movie_id,
+            r.rating,
+            r.review_text,
+            r.status,
+            r.created_at,
+            m.title,
+            m.poster,
+            m.year
+        FROM reviews r
+        INNER JOIN movies m
+            ON r.movie_id = m.id
+        WHERE r.user_id = %s
+        ORDER BY r.created_at DESC
+    """, (user_id,))
+
     reviews = cursor.fetchall()
 
     cursor.close()
@@ -350,11 +489,10 @@ def profile_page():
         watchlist_count=watchlist_count,
         favorites_count=favorites_count,
         reviews_count=reviews_count,
+        watchlist=watchlist,
+        favorites=favorites,
         reviews=reviews
     )
-
-    return render_template("profile.html", user=user)
-
 
 # =====================================================
 # ADMIN PAGE
