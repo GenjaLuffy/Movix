@@ -7,13 +7,18 @@ from flask import (
     session,
     request,
     redirect,
-    session,
     jsonify,
     url_for
 )
 
 from db import get_connection
 from recommender import MovieRecommender
+
+app = Flask(__name__)
+app.secret_key = "movix-dev-secret-change-me"
+
+# Load recommender once when Flask starts
+recommender = MovieRecommender()
 
 # =====================================================
 # FLASK APP
@@ -516,6 +521,22 @@ def admin_dashboard():
 
     cursor.execute("SELECT COUNT(*) AS total_reviews FROM reviews")
     total_reviews = cursor.fetchone()["total_reviews"]
+
+    cursor.execute("""
+        SELECT
+            id,
+            first_name,
+            last_name,
+            email,
+            role,
+            status,
+            created_at
+        FROM users
+        WHERE is_admin = 0
+        ORDER BY created_at DESC
+    """)
+
+    users = cursor.fetchall()
     
 
     cursor.close()
