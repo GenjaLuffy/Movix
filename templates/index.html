@@ -655,7 +655,8 @@
 
                 <button
                     class="btn btn-primary"
-                    id="watchTrailerBtn">
+                    id="watchTrailerBtn"
+                    onclick="openTrailer()">
 
                     <svg
                         width="18"
@@ -668,7 +669,7 @@
 
                     </svg>
 
-                    Watch Trailer
+                    <span id="watchTrailerBtnText">Watch Trailer</span>
 
                 </button>
 
@@ -726,6 +727,71 @@
 
             </div>
 
+            <!-- Reviews -->
+
+            <h3 class="modal-section-title">
+
+                Reviews
+
+            </h3>
+
+            <div class="reviews-section">
+
+                <div class="reviews-summary">
+
+                    <span class="reviews-avg" id="reviewsAvg">0.0</span>
+
+                    <div class="reviews-avg-details">
+
+                        <div class="reviews-stars" id="reviewsAvgStars">★★★★★</div>
+
+                        <span
+                            class="reviews-count"
+                            id="reviewsCount">No reviews yet</span>
+
+                    </div>
+
+                </div>
+
+                <!-- Write a review -->
+
+                <div class="review-form" id="reviewForm">
+
+                    <p class="review-form-label">Your rating</p>
+
+                    <div class="star-input" id="starInput">
+                        <span data-value="1">★</span>
+                        <span data-value="2">★</span>
+                        <span data-value="3">★</span>
+                        <span data-value="4">★</span>
+                        <span data-value="5">★</span>
+                    </div>
+
+                    <textarea
+                        id="reviewText"
+                        class="review-textarea"
+                        rows="3"
+                        placeholder="Share your thoughts about this movie..."></textarea>
+
+                    <button
+                        class="btn btn-primary"
+                        id="submitReviewBtn"
+                        onclick="submitReview()">
+                        Submit Review
+                    </button>
+
+                    <p class="review-note" id="reviewNote"></p>
+
+                </div>
+
+                <!-- Existing reviews -->
+
+                <div class="review-list" id="reviewList">
+
+                </div>
+
+            </div>
+
             <!-- Similar Movies -->
 
             <h3 class="modal-section-title">
@@ -739,6 +805,45 @@
                 id="modalSimilar">
 
             </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================
+     TRAILER MODAL
+========================= -->
+
+<div
+    class="trailer-overlay"
+    id="trailerModal"
+    onclick="closeTrailer(event)">
+
+    <div
+        class="trailer-box"
+        onclick="event.stopPropagation()">
+
+        <button
+            class="trailer-close"
+            onclick="closeTrailer()">
+
+            <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2">
+
+                <path d="M18 6L6 18M6 6l12 12"/>
+
+            </svg>
+
+        </button>
+
+        <div class="trailer-frame-wrap" id="trailerFrameWrap">
 
         </div>
 
@@ -1483,6 +1588,7 @@ function openMovieModal(id){
         similar.map(m => createMovieCard(m, "small")).join("");
 
     updateModalButtons();
+    renderReviews(id);
 
     document.getElementById("movieModal").classList.add("active");
     document.body.style.overflow = "hidden";
@@ -1544,6 +1650,269 @@ function closeModalDirect(){
     document.getElementById("movieModal").classList.remove("active");
     document.body.style.overflow = "";
     currentMovieId = null;
+
+}
+
+// ==========================================
+// WATCH TRAILER
+// ==========================================
+
+async function openTrailer(){
+
+    if(currentMovieId == null){
+        return;
+    }
+
+    const movie = getMovie(currentMovieId);
+    const btnText = document.getElementById("watchTrailerBtnText");
+    const originalText = btnText.textContent;
+
+    btnText.textContent = "Loading...";
+
+    try{
+
+        const response = await fetch(`/api/movies/${currentMovieId}/media`);
+        const data = await response.json();
+
+        btnText.textContent = originalText;
+
+        if(data.success && data.trailer_key){
+
+            document.getElementById("trailerFrameWrap").innerHTML = `
+                <iframe
+                    width="100%"
+                    height="100%"
+                    src="https://www.youtube.com/embed/${data.trailer_key}?autoplay=1"
+                    title="Trailer"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen>
+                </iframe>
+            `;
+
+            document.getElementById("trailerModal").classList.add("active");
+
+        } else {
+
+            // No TMDB key configured (or no trailer found) — fall back
+            // to a YouTube search so "Watch Trailer" still works.
+            const query = encodeURIComponent(`${movie ? movie.title : ""} official trailer`);
+            window.open(`https://www.youtube.com/results?search_query=${query}`, "_blank");
+
+            showToast(
+                data.tmdb_configured
+                    ? "No trailer found for this movie."
+                    : "Opening YouTube search (add a TMDB_API_KEY for in-app trailers)."
+            );
+
+        }
+
+    } catch(error){
+
+        console.error(error);
+        btnText.textContent = originalText;
+        showToast("Couldn't load the trailer.");
+
+    }
+
+}
+
+function closeTrailer(event){
+
+    if(event && event.target.id !== "trailerModal"){
+        return;
+    }
+
+    document.getElementById("trailerModal").classList.remove("active");
+    document.getElementById("trailerFrameWrap").innerHTML = "";
+
+}
+
+// ==========================================
+// REVIEWS
+// ==========================================
+
+let selectedReviewRating = 0;
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    const starInput = document.getElementById("starInput");
+
+    if(!starInput){
+        return;
+    }
+
+    const stars = Array.from(starInput.querySelectorAll("span"));
+
+    stars.forEach(star => {
+
+        star.addEventListener("click", () => {
+            selectedReviewRating = Number(star.dataset.value);
+            highlightStars(stars, selectedReviewRating);
+        });
+
+        star.addEventListener("mouseenter", () => {
+            highlightStars(stars, Number(star.dataset.value));
+        });
+
+    });
+
+    starInput.addEventListener("mouseleave", () => {
+        highlightStars(stars, selectedReviewRating);
+    });
+
+});
+
+function highlightStars(stars, value){
+
+    stars.forEach(star => {
+        star.classList.toggle("filled", Number(star.dataset.value) <= value);
+    });
+
+}
+
+function renderStaticStars(value){
+
+    const rounded = Math.round(value);
+    let out = "";
+
+    for(let i = 1; i <= 5; i++){
+        out += `<span class="${i <= rounded ? "filled" : ""}">★</span>`;
+    }
+
+    return out;
+
+}
+
+async function renderReviews(movieId){
+
+    // Reset the form for the newly opened movie
+    selectedReviewRating = 0;
+
+    const starInput = document.getElementById("starInput");
+    if(starInput){
+        highlightStars(Array.from(starInput.querySelectorAll("span")), 0);
+    }
+
+    document.getElementById("reviewText").value = "";
+    document.getElementById("reviewNote").textContent = "";
+
+    const listEl = document.getElementById("reviewList");
+    listEl.innerHTML = `<p class="review-empty">Loading reviews...</p>`;
+
+    try{
+
+        const response = await fetch(`/api/movies/${movieId}/reviews`);
+        const data = await response.json();
+
+        if(!data.success){
+            listEl.innerHTML = `<p class="review-empty">Couldn't load reviews.</p>`;
+            return;
+        }
+
+        document.getElementById("reviewsAvg").textContent =
+            data.average_rating.toFixed(1);
+
+        document.getElementById("reviewsAvgStars").innerHTML =
+            renderStaticStars(data.average_rating);
+
+        document.getElementById("reviewsCount").textContent =
+            data.total_reviews > 0
+                ? `${data.total_reviews} review${data.total_reviews === 1 ? "" : "s"}`
+                : "No reviews yet";
+
+        listEl.innerHTML = data.reviews.length
+            ? data.reviews.map(r => `
+                <div class="review-item">
+                    <div class="review-item-head">
+                        <span class="review-author">
+                            ${escapeHtml(r.first_name)} ${escapeHtml(r.last_name)}
+                        </span>
+                        <span class="review-item-stars">${renderStaticStars(r.rating)}</span>
+                    </div>
+                    <p class="review-item-text">${escapeHtml(r.review_text)}</p>
+                </div>
+            `).join("")
+            : `<p class="review-empty">No reviews yet. Be the first to review this movie!</p>`;
+
+        const submitBtn = document.getElementById("submitReviewBtn");
+        const noteEl = document.getElementById("reviewNote");
+
+        if(data.user_has_reviewed){
+            submitBtn.disabled = true;
+            noteEl.textContent = "You've already reviewed this movie.";
+        } else {
+            submitBtn.disabled = false;
+        }
+
+    } catch(error){
+
+        console.error(error);
+        listEl.innerHTML = `<p class="review-empty">Couldn't load reviews.</p>`;
+
+    }
+
+}
+
+async function submitReview(){
+
+    if(currentMovieId == null){
+        return;
+    }
+
+    const noteEl = document.getElementById("reviewNote");
+    const text = document.getElementById("reviewText").value.trim();
+
+    if(selectedReviewRating < 1){
+        noteEl.textContent = "Please select a star rating.";
+        return;
+    }
+
+    if(!text){
+        noteEl.textContent = "Please write a short review.";
+        return;
+    }
+
+    const submitBtn = document.getElementById("submitReviewBtn");
+    submitBtn.disabled = true;
+    noteEl.textContent = "Submitting...";
+
+    try{
+
+        const response = await fetch("/api/reviews", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                movie_id: currentMovieId,
+                rating: selectedReviewRating,
+                text: text
+            })
+        });
+
+        const data = await response.json();
+
+        if(data.success){
+
+            noteEl.textContent =
+                "Thanks! Your review was submitted and is awaiting approval.";
+
+            document.getElementById("reviewText").value = "";
+            showToast("Review submitted successfully.");
+
+        } else {
+
+            submitBtn.disabled = false;
+            noteEl.textContent = data.message || "Something went wrong.";
+
+        }
+
+    } catch(error){
+
+        console.error(error);
+        submitBtn.disabled = false;
+        noteEl.textContent = "Something went wrong. Please try again.";
+
+    }
 
 }
 

@@ -1,5 +1,9 @@
+import os
 from functools import wraps
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 import bcrypt
+import requests
 
 from flask import (
     Flask,
@@ -17,9 +21,6 @@ from recommender import MovieRecommender
 app = Flask(__name__)
 app.secret_key = "movix-dev-secret-change-me"
 
-# Load recommender once when Flask starts
-recommender = MovieRecommender()
-
 # =====================================================
 # FLASK APP
 # =====================================================
@@ -33,6 +34,197 @@ app.secret_key = "movix-dev-secret-change-me"
 # =====================================================
 
 recommender = MovieRecommender()
+
+
+# =====================================================
+# TMDB INTEGRATION (posters + trailers)
+# =====================================================
+# Get a free API key at https://www.themoviedb.org/settings/api
+# and set it as an environment variable before running the app:
+#   Windows (PowerShell):  $env:TMDB_API_KEY="your_key_here"
+#   Linux / macOS:         export TMDB_API_KEY="your_key_here"
+# The app still works without a key: posters fall back to the
+# placeholder image and "Watch Trailer" falls back to a YouTube search.
+
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "")
+TMDB_BASE_URL = "https://api.themoviedb.org/3"
+TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
+
+# Simple in-memory cache so we don't hit the TMDB API
+# more than once per movie for the lifetime of the server.
+_tmdb_media_cache = {}
+
+
+def fetch_tmdb_media(tmdb_id):
+    """
+    Fetch poster + trailer info for a single movie from TMDB.
+    Returns {"poster": <url or "">, "trailer_key": <youtube id or "">}
+    Safe to call even when TMDB_API_KEY is not configured;
+    it will just return empty values so the UI can fall back.
+    """
+
+    if not tmdb_id:
+        return {"poster": "", "trailer_key": ""}
+
+    if tmdb_id in _tmdb_media_cache:
+        return _tmdb_media_cache[tmdb_id]
+
+    result = {"poster": "", "trailer_key": ""}
+
+    if not TMDB_API_KEY:
+        _tmdb_media_cache[tmdb_id] = result
+        return result
+
+    try:
+        details = requests.get(
+            f"{TMDB_BASE_URL}/movie/{tmdb_id}",
+            params={
+                "api_key": TMDB_API_KEY,
+                "append_to_response": "videos"
+            },
+            timeout=5
+        )
+
+        if details.ok:
+            payload = details.json()
+
+            poster_path = payload.get("poster_path")
+            if poster_path:
+                result["poster"] = TMDB_IMAGE_BASE + poster_path
+
+            videos = (payload.get("videos") or {}).get("results", [])
+
+            trailer = next(
+                (
+                    v for v in videos
+                    if v.get("site") == "YouTube"
+                    and v.get("type") == "Trailer"
+                ),
+                None
+            )
+
+            if not trailer and videos:
+                trailer = next(
+                    (v for v in videos if v.get("site") == "YouTube"),
+                    None
+                )
+
+            if trailer:
+                result["trailer_key"] = trailer.get("key", "")
+
+    except requests.RequestException as e:
+        print("TMDB fetch error:", e)
+
+    _tmdb_media_cache[tmdb_id] = result
+    return result
+
+
+def fetch_tmdb_media_bulk(tmdb_ids):
+    """
+    Fetch TMDB media for many ids in parallel (used by /api/movies
+    so the movie grid can show real posters). Only runs the network
+    calls when TMDB_API_KEY is configured; otherwise returns instantly.
+    """
+
+    if not TMDB_API_KEY:
+        return {tid: {"poster": "", "trailer_key": ""} for tid in tmdb_ids}
+
+    results = {}
+    to_fetch = [tid for tid in tmdb_ids if tid not in _tmdb_media_cache]
+
+    if to_fetch:
+        with ThreadPoolExecutor(max_workers=10) as pool:
+            future_map = {
+                pool.submit(fetch_tmdb_media, tid): tid
+                for tid in to_fetch
+            }
+
+            for future in as_completed(future_map):
+                tid = future_map[future]
+                try:
+                    future.result()
+                except Exception:
+                    pass
+
+    for tid in tmdb_ids:
+        results[tid] = _tmdb_media_cache.get(
+            tid, {"poster": "", "trailer_key": ""}
+        )
+
+    return results
+
+
+# =====================================================
+# SYNC MOVIE CATALOGUE INTO MYSQL
+# =====================================================
+# Reviews / watchlist / favorites all store a movie_id that must
+# match a row in the `movies` SQL table. The browsable catalogue
+# comes from the ML recommender's dataset (TMDB ids), so we mirror
+# those rows into `movies` (keyed by the same id) on startup.
+
+def sync_movies_table():
+
+    conn = get_connection()
+
+    if conn is None:
+        print("Skipping movie catalogue sync: no database connection.")
+        return
+
+    cursor = conn.cursor()
+
+    try:
+
+        rows = list(recommender.df.head(100).iterrows())
+        ids = [int(row["id"]) for _, row in rows]
+        media_map = fetch_tmdb_media_bulk(ids)
+
+        for _, movie in rows:
+
+            tmdb_id = int(movie["id"])
+            title = str(movie.get("title", ""))[:255]
+            rating = float(movie.get("vote_average", 0) or 0)
+            genre = str(movie.get("genres", ""))[:100]
+            language = str(movie.get("original_language", ""))[:50]
+            popularity = float(movie.get("popularity", 0) or 0)
+            description = str(movie.get("overview", ""))
+            poster = media_map.get(tmdb_id, {}).get("poster", "")
+
+            release_date = str(movie.get("release_date", "") or "")
+            year = int(release_date[:4]) if release_date[:4].isdigit() else None
+
+            cursor.execute("""
+                INSERT INTO movies
+                    (id, title, rating, genre, year, language,
+                     popularity, description, poster)
+                VALUES
+                    (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ON DUPLICATE KEY UPDATE
+                    title=VALUES(title),
+                    rating=VALUES(rating),
+                    genre=VALUES(genre),
+                    year=VALUES(year),
+                    language=VALUES(language),
+                    popularity=VALUES(popularity),
+                    description=VALUES(description),
+                    poster=IF(VALUES(poster) <> '', VALUES(poster), poster)
+            """, (
+                tmdb_id, title, rating, genre, year,
+                language, popularity, description, poster
+            ))
+
+        conn.commit()
+        print(f"Movie catalogue synced ({len(rows)} movies).")
+
+    except Exception as e:
+        conn.rollback()
+        print("Movie catalogue sync error:", e)
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+sync_movies_table()
 
 
 # =====================================================
@@ -671,15 +863,23 @@ def movies():
 
     data = recommender.df
 
+    movie_rows = list(data.head(100).iterrows())
+    ids = [int(row["id"]) for _, row in movie_rows]
+
+    # Fetch posters (and trailer keys) from TMDB in parallel.
+    # Falls back to empty strings automatically if no API key is set.
+    media_map = fetch_tmdb_media_bulk(ids)
 
     movies = []
 
+    for _, movie in movie_rows:
 
-    for _, movie in data.head(100).iterrows():
+        tmdb_id = int(movie["id"])
+        media = media_map.get(tmdb_id, {"poster": "", "trailer_key": ""})
 
         movies.append({
 
-            "id": int(movie["id"]),
+            "id": tmdb_id,
 
             "title": movie["title"],
 
@@ -710,15 +910,40 @@ def movies():
                 ""
             ),
 
-            "poster": movie.get(
+            "poster": media["poster"] or movie.get(
                 "poster",
                 ""
-            )
+            ),
+
+            "trailer_key": media["trailer_key"]
 
         })
 
 
     return jsonify(movies)
+
+
+# =====================================================
+# MOVIE MEDIA (poster + trailer, fetched on demand)
+# =====================================================
+
+@app.route("/api/movies/<int:movie_id>/media")
+def api_movie_media(movie_id):
+
+    media = fetch_tmdb_media(movie_id)
+
+    trailer_url = (
+        f"https://www.youtube.com/embed/{media['trailer_key']}"
+        if media["trailer_key"] else ""
+    )
+
+    return jsonify({
+        "success": True,
+        "poster": media["poster"],
+        "trailer_key": media["trailer_key"],
+        "trailer_url": trailer_url,
+        "tmdb_configured": bool(TMDB_API_KEY)
+    })
 # =====================================================
 # SINGLE MOVIE DETAILS
 # =====================================================
@@ -957,6 +1182,74 @@ def add_watched():
 # =====================================================
 # CREATE REVIEW
 # =====================================================
+
+@app.route("/api/movies/<int:movie_id>/reviews", methods=["GET"])
+def get_movie_reviews(movie_id):
+
+    conn = get_connection()
+
+    if conn is None:
+        return jsonify({
+            "success": False,
+            "message": "Database connection failed."
+        }), 500
+
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+
+        cursor.execute("""
+            SELECT
+                r.id,
+                r.rating,
+                r.review_text,
+                r.created_at,
+                u.first_name,
+                u.last_name
+            FROM reviews r
+            INNER JOIN users u ON r.user_id = u.id
+            WHERE r.movie_id = %s
+            AND r.status = 'Approved'
+            ORDER BY r.created_at DESC
+        """, (movie_id,))
+
+        reviews = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT
+                COALESCE(AVG(rating), 0) AS avg_rating,
+                COUNT(*) AS total
+            FROM reviews
+            WHERE movie_id = %s
+            AND status = 'Approved'
+        """, (movie_id,))
+
+        summary = cursor.fetchone()
+
+        # Has the logged-in user already submitted a review for this movie?
+        user_has_reviewed = False
+
+        if "user_id" in session:
+
+            cursor.execute("""
+                SELECT id FROM reviews
+                WHERE movie_id = %s AND user_id = %s
+            """, (movie_id, session["user_id"]))
+
+            user_has_reviewed = cursor.fetchone() is not None
+
+        return jsonify({
+            "success": True,
+            "reviews": reviews,
+            "average_rating": round(float(summary["avg_rating"]), 1),
+            "total_reviews": summary["total"],
+            "user_has_reviewed": user_has_reviewed
+        })
+
+    finally:
+        cursor.close()
+        conn.close()
+
 
 @app.route("/api/reviews", methods=["POST"])
 @login_required
