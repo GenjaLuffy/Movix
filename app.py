@@ -75,13 +75,27 @@ def fetch_tmdb_media(tmdb_id):
         _tmdb_media_cache[tmdb_id] = result
         return result
 
+    # TMDB's API settings page shows two different credentials:
+    #   - "API Key (v3 auth)"          -> short alphanumeric string,
+    #                                     sent as a query param.
+    #   - "API Read Access Token (v4)" -> long token with dots (JWT-style),
+    #                                     sent as a Bearer header instead.
+    # Auto-detect which one was pasted so both work.
+    is_v4_token = TMDB_API_KEY.count(".") >= 2 and len(TMDB_API_KEY) > 100
+
+    params = {"append_to_response": "videos"}
+    headers = {}
+
+    if is_v4_token:
+        headers["Authorization"] = f"Bearer {TMDB_API_KEY}"
+    else:
+        params["api_key"] = TMDB_API_KEY
+
     try:
         details = requests.get(
             f"{TMDB_BASE_URL}/movie/{tmdb_id}",
-            params={
-                "api_key": TMDB_API_KEY,
-                "append_to_response": "videos"
-            },
+            params=params,
+            headers=headers,
             timeout=5
         )
 
@@ -111,6 +125,14 @@ def fetch_tmdb_media(tmdb_id):
 
             if trailer:
                 result["trailer_key"] = trailer.get("key", "")
+
+        else:
+            # Print the real reason (401 = bad key, 404 = bad id, etc.)
+            # so it's easy to spot in the terminal running Flask.
+            print(
+                f"TMDB fetch failed for id {tmdb_id}: "
+                f"HTTP {details.status_code} - {details.text[:200]}"
+            )
 
     except requests.RequestException as e:
         print("TMDB fetch error:", e)
@@ -943,6 +965,44 @@ def api_movie_media(movie_id):
         "trailer_key": media["trailer_key"],
         "trailer_url": trailer_url,
         "tmdb_configured": bool(TMDB_API_KEY)
+    })
+
+
+@app.route("/api/debug/tmdb")
+def debug_tmdb():
+    """
+    Quick sanity check: hit this in your browser at
+    http://localhost:5000/api/debug/tmdb to see whether your
+    TMDB_API_KEY is configured and actually working.
+    """
+
+    if not TMDB_API_KEY:
+        return jsonify({
+            "configured": False,
+            "message": "TMDB_API_KEY is not set on this server."
+        })
+
+    # Avatar's TMDB id — a known-good test case.
+    media = fetch_tmdb_media(19995)
+
+    working = bool(media["poster"] or media["trailer_key"])
+
+    return jsonify({
+        "configured": True,
+        "key_looks_like": (
+            "v4 read access token"
+            if TMDB_API_KEY.count(".") >= 2 and len(TMDB_API_KEY) > 100
+            else "v3 api key"
+        ),
+        "test_movie": "Avatar (id 19995)",
+        "working": working,
+        "poster_found": bool(media["poster"]),
+        "trailer_found": bool(media["trailer_key"]),
+        "message": (
+            "Looks good!" if working else
+            "Key is set but the request failed — check the Flask "
+            "terminal for a 'TMDB fetch failed' line with the exact reason."
+        )
     })
 # =====================================================
 # SINGLE MOVIE DETAILS
